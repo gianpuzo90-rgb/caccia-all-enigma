@@ -12,8 +12,9 @@ import { PrivacyPage } from "./components/PrivacyPage";
 import { CookiePreferencesPage } from "./components/CookiePreferencesPage";
 import { EnigmaLevel } from "./components/EnigmaLevel";
 import { UserGlyph } from "./components/icons";
+import { usePortale } from "./components/usePortale";
 import { K, ROMANS, leggiLocale, rimuoviLocale, scriviLocale } from "./components/utils";
-import type { Consenso, PortalRect, Sessione, View } from "./components/types";
+import type { Consenso, Sessione, View } from "./components/types";
 
 /* ==================================================================
    CACCIA ALL'ENIGMA
@@ -21,6 +22,11 @@ import type { Consenso, PortalRect, Sessione, View } from "./components/types";
    Livello IV+: enigmi reali, governati dal server via /api/enigma,
    /api/verifica, /api/indizio. Classifica da /api/classifica.
    ================================================================== */
+
+/* Deve combaciare con PRIMO_LIVELLO in EnigmaLevel.tsx e con
+   PRIMO_LIVELLO_SERVER in lib/enigmi.ts (non importabile qui, vedi
+   nota in EnigmaLevel.tsx). Serve solo per numerare la barra. */
+const PRIMO_LIVELLO_ENIGMA = 4;
 
 function sessioneDaUtente(u: User): Sessione {
   return {
@@ -57,10 +63,16 @@ export default function CacciaAllEnigma() {
   const [sessione, setSessione] = useState<Sessione | null>(null);
 
   const [view, setView] = useState<View>("game");
-  const [portal, setPortal] = useState<PortalRect | null>(null);
-  const doorSceneRef = useRef<HTMLDivElement | null>(null);
+  const { sceneRef: doorSceneRef, portale: portal, apri: apriPortale } = usePortale();
   const barRef = useRef<HTMLDivElement | null>(null);
   const [barH, setBarH] = useState(0);
+
+  // livello IV+: quale enigma sta mostrando EnigmaLevel e il più alto
+  // mai raggiunto in questa sessione (per la barra cliccabile in alto).
+  // livelloRichiesto è il canale per chiederle di saltare a un livello.
+  const [livelloEnigma, setLivelloEnigma] = useState<number | null>(null);
+  const [livelloEnigmaMax, setLivelloEnigmaMax] = useState<number | null>(null);
+  const [livelloRichiesto, setLivelloRichiesto] = useState<number | null>(null);
 
   /* ------------------------- avvio ------------------------- */
 
@@ -115,18 +127,24 @@ export default function CacciaAllEnigma() {
   const clearError = () => setError("");
 
   const openPortal = (next: number, lit: boolean) => {
-    const el = doorSceneRef.current;
-    if (!el) {
-      setLevel(next);
-      return;
-    }
-    const r = el.getBoundingClientRect();
     setError("");
-    setPortal({ x: r.left, y: r.top, w: r.width, h: r.height, lit, leafOpen: false, zoom: false });
-    setLevel(next);
-    setTimeout(() => setPortal((p) => (p ? { ...p, leafOpen: true } : p)), 80);
-    setTimeout(() => setPortal((p) => (p ? { ...p, zoom: true } : p)), 850);
-    setTimeout(() => setPortal(null), 2300);
+    apriPortale(() => setLevel(next), lit);
+  };
+
+  // click sulla barra in alto: livelli 1-3 solo mentre sei ancora
+  // nell'onboarding (dopo, la porta non esiste più); livelli 4+ solo
+  // fra quelli già raggiunti, li gestisce EnigmaLevel.
+  const vaiALivelloOnboarding = (n: number) => {
+    if (level <= 3 && n <= level) {
+      setError("");
+      setLevel(n);
+    }
+  };
+  const vaiALivelloEnigma = (n: number) => {
+    if (livelloEnigmaMax !== null && n <= livelloEnigmaMax) {
+      setError("");
+      setLivelloRichiesto(n);
+    }
   };
 
   /* --------------------- cookie (reale, in localStorage) --------------------- */
@@ -150,7 +168,9 @@ export default function CacciaAllEnigma() {
     setLevel(1);
     setError("");
     setView("game");
-    setPortal(null);
+    setLivelloEnigma(null);
+    setLivelloEnigmaMax(null);
+    setLivelloRichiesto(null);
     scriviLocale(K.progresso, { level: 1 });
   };
 
@@ -209,6 +229,11 @@ export default function CacciaAllEnigma() {
             onFail={fail}
             onClearError={clearError}
             onRestart={resetAll}
+            onCambioLivello={(l) => {
+              setLivelloEnigma(l);
+              setLivelloEnigmaMax((m) => (m === null ? l : Math.max(m, l)));
+            }}
+            livelloRichiesto={livelloRichiesto}
           />
         );
     }
@@ -260,7 +285,8 @@ export default function CacciaAllEnigma() {
   const sigillo = () => {
     if (view === "auth" || view === "account") return <UserGlyph size={20} />;
     if (view === "privacy" || view === "cookie") return "§";
-    return level <= 3 ? ROMANS[level - 1] : "✓";
+    if (level <= 3) return ROMANS[level - 1];
+    return livelloEnigma ?? "✓";
   };
 
   if (!pronto) return <div className="night" />;
@@ -282,15 +308,39 @@ export default function CacciaAllEnigma() {
 
       <header className="top">
         <h1 className="wordmark">Caccia all&apos;Enigma</h1>
-        <div className="progress" aria-label={`Livello ${Math.min(level, 3)} di 3`}>
-          {ROMANS.map((r, i) => (
-            <span
-              key={r}
-              className={"step" + (i + 1 < level ? " done" : "") + (i + 1 === level ? " now" : "")}
-            >
-              {r}
-            </span>
-          ))}
+        <div className="progress" aria-label="Livelli">
+          {ROMANS.map((r, i) => {
+            const n = i + 1;
+            const cliccabile = level <= 3 && n <= level;
+            return (
+              <button
+                key={r}
+                type="button"
+                className={"step" + (n < level ? " done" : "") + (n === level ? " now" : "")}
+                disabled={!cliccabile}
+                onClick={() => vaiALivelloOnboarding(n)}
+              >
+                {r}
+              </button>
+            );
+          })}
+          {livelloEnigmaMax !== null && (
+            <span className="progressDiv" aria-hidden="true" />
+          )}
+          {livelloEnigmaMax !== null &&
+            Array.from({ length: livelloEnigmaMax - PRIMO_LIVELLO_ENIGMA + 1 }, (_, i) => PRIMO_LIVELLO_ENIGMA + i).map(
+              (n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className={"step num" + (n < (livelloEnigma ?? 0) ? " done" : "") + (n === livelloEnigma ? " now" : "")}
+                  aria-current={n === livelloEnigma ? "step" : undefined}
+                  onClick={() => vaiALivelloEnigma(n)}
+                >
+                  {n}
+                </button>
+              )
+            )}
         </div>
         {level > 1 && view === "game" && (
           <button className="resetBtn" onClick={resetAll}>

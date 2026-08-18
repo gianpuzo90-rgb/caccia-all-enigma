@@ -62,15 +62,15 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
     const email = reg.email.trim().toLowerCase();
 
     if (!NICK_RE.test(nick))
-      return onFail("Il nome da Cercatore vuole 3-20 caratteri: lettere, numeri o trattino basso.");
-    if (nickStatus === "occupato") return onFail("Quel nome è già di un altro Cercatore.");
-    if (nickStatus === "controllo") return onFail("Un istante: sto ancora controllando il nome.");
-    if (!EMAIL_RE.test(email)) return onFail("Quell'email non convince il Custode.");
-    if (reg.pass.length < 8) return onFail("La password vuole almeno 8 caratteri.");
+      return onFail("Lo username deve avere 3-20 caratteri: lettere, numeri o trattino basso.");
+    if (nickStatus === "occupato") return onFail("Username non disponibile.");
+    if (nickStatus === "controllo") return onFail("Attendi: verifica dello username in corso.");
+    if (!EMAIL_RE.test(email)) return onFail("Email non valida.");
+    if (reg.pass.length < 8) return onFail("La password deve avere almeno 8 caratteri.");
     if (DEBOLI.includes(reg.pass.toLowerCase()))
-      return onFail("Troppo prevedibile: quella la indovinerebbe chiunque.");
+      return onFail("Password troppo comune: scegline una più sicura.");
     if (reg.pass !== reg.pass2) return onFail("Le due password non coincidono.");
-    if (!reg.eta) return onFail("Serve la spunta obbligatoria su età e informativa.");
+    if (!reg.eta) return onFail("Conferma l'età e l'informativa per continuare.");
 
     setOccupato(true);
     const supabase = supabaseBrowser();
@@ -83,16 +83,16 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
 
     if (error) {
       if (/registered|exists/i.test(error.message)) {
-        return onFail("Questa email è già iscritta alla Caccia. Prova a entrare.");
+        return onFail("Questa email è già registrata. Prova ad accedere.");
       }
-      return onFail(error.message || "Il Custode non sa dirti cos'è andato storto. Riprova.");
+      return onFail(error.message || "Si è verificato un errore. Riprova.");
     }
 
     setReg({ nick: "", email: "", pass: "", pass2: "", eta: false, marketing: false });
     if (data.session) {
       onAuthenticated();
     } else {
-      onNota("Controlla la tua email per confermare l'iscrizione, poi entra con le tue credenziali.");
+      onNota("Controlla la tua email per confermare la registrazione, poi accedi.");
       setModo("entra");
     }
   };
@@ -100,7 +100,7 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
   const entra = async () => {
     onClearError();
     const email = log.email.trim().toLowerCase();
-    if (!EMAIL_RE.test(email) || !log.pass) return onFail("Email o password non convincono il Custode.");
+    if (!EMAIL_RE.test(email) || !log.pass) return onFail("Credenziali non valide.");
 
     setOccupato(true);
     const supabase = supabaseBrowser();
@@ -108,7 +108,7 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
     setOccupato(false);
 
     if (error) {
-      return onFail("Email o password non convincono il Custode.");
+      return onFail("Credenziali non valide.");
     }
     setLog({ email: "", pass: "" });
     onAuthenticated();
@@ -133,16 +133,15 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
             onClearError();
           }}
         >
-          Entra
+          Accedi
         </button>
       </div>
 
       {modo === "registrati" ? (
         <>
-          <p className="riddle">Da qui in poi, la Caccia ricorda chi sei.</p>
           <input
             className="field"
-            placeholder="Nome da Cercatore"
+            placeholder="Username"
             autoComplete="username"
             value={reg.nick}
             onChange={(e) => setReg({ ...reg, nick: e.target.value })}
@@ -150,9 +149,9 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
           {reg.nick && (
             <p className="aside" style={{ marginTop: -8 }}>
               {!NICK_RE.test(reg.nick.trim()) && "3-20 caratteri: lettere, numeri o trattino basso."}
-              {NICK_RE.test(reg.nick.trim()) && nickStatus === "controllo" && "Controllo il nome…"}
-              {NICK_RE.test(reg.nick.trim()) && nickStatus === "libero" && "Nome libero."}
-              {NICK_RE.test(reg.nick.trim()) && nickStatus === "occupato" && "Già di un altro Cercatore."}
+              {NICK_RE.test(reg.nick.trim()) && nickStatus === "controllo" && "Verifica in corso…"}
+              {NICK_RE.test(reg.nick.trim()) && nickStatus === "libero" && "Username disponibile."}
+              {NICK_RE.test(reg.nick.trim()) && nickStatus === "occupato" && "Username non disponibile."}
             </p>
           )}
           <input
@@ -215,12 +214,11 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
           </label>
 
           <button className="btn" onClick={registra} disabled={occupato}>
-            {occupato ? "Un istante…" : "Sigilla il patto"}
+            {occupato ? "Un istante…" : "Registrati"}
           </button>
         </>
       ) : (
         <>
-          <p className="riddle">Bentornato, Cercatore.</p>
           <input
             className="field"
             type="email"
@@ -239,11 +237,11 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
             onKeyDown={(e) => onEnter(e, entra)}
           />
           <button className="btn" onClick={entra} disabled={occupato}>
-            {occupato ? "Un istante…" : "Entra"}
+            {occupato ? "Un istante…" : "Accedi"}
           </button>
           <button
             className="linkBtn"
-            onClick={() => onNota("Il recupero della password arriverà presto.")}
+            onClick={() => onNota("Funzione non ancora disponibile.")}
           >
             Password dimenticata?
           </button>
@@ -251,7 +249,7 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
       )}
 
       <button className="linkBtn" onClick={onClose}>
-        ← torna alla caccia
+        ← torna al gioco
       </button>
     </>
   );

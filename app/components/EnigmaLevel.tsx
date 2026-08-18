@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { EnigmaDTO, IndizioOk } from "./types";
 import { Classifica } from "./Classifica";
+import { Door } from "./Door";
+import { Portal } from "./Portal";
+import { usePortale } from "./usePortale";
 
 /* Il primo livello governato dal server: deve combaciare con
    PRIMO_LIVELLO_SERVER in lib/enigmi.ts (non importabile qui: usa
@@ -15,19 +19,33 @@ type EnigmaLevelProps = {
   onFail: (msg: string) => void;
   onClearError: () => void;
   onRestart: () => void;
+  /** Livello attualmente mostrato, per la barra cliccabile del genitore. */
+  onCambioLivello?: (livello: number) => void;
+  /** Il genitore chiede di saltare a un livello già raggiunto (click sulla barra). */
+  livelloRichiesto?: number | null;
 };
 
-type Stato = "carico" | "pronto" | "completato" | "errore";
+type Stato = "carico" | "pronto" | "risolto" | "completato" | "errore";
 
 /* ------------------- Livello IV+ : enigmi lato server ------------------- */
 
-export function EnigmaLevel({ mioNick, onFail, onClearError, onRestart }: EnigmaLevelProps) {
+export function EnigmaLevel({
+  mioNick,
+  onFail,
+  onClearError,
+  onRestart,
+  onCambioLivello,
+  livelloRichiesto,
+}: EnigmaLevelProps) {
   const [stato, setStato] = useState<Stato>("carico");
   const [enigma, setEnigma] = useState<EnigmaDTO | null>(null);
+  const [prossimoLivello, setProssimoLivello] = useState<number | null>(null);
   const [risposta, setRisposta] = useState("");
   const [indizi, setIndizi] = useState<IndizioOk[]>([]);
   const [verificando, setVerificando] = useState(false);
   const [chiedendoIndizio, setChiedendoIndizio] = useState(false);
+
+  const { sceneRef: doorSceneRef, portale, apri: apriPortale } = usePortale();
 
   /* Il server sa qual è il livello sbloccato: si parte dal primo e si
      avanza finché non se ne trova uno non ancora risolto, o si scopre
@@ -61,10 +79,35 @@ export function EnigmaLevel({ mioNick, onFail, onClearError, onRestart }: Enigma
       if (!data.risolto) {
         setEnigma(data);
         setStato("pronto");
+        onCambioLivello?.(data.livello);
         return;
       }
     }
     setStato("errore");
+  };
+
+  /* Salto diretto a un livello già raggiunto (click sulla barra): un
+     solo fetch, nessuna ricerca. Mostra anche gli enigmi già risolti,
+     in sola lettura. */
+  const mostraLivello = async (livello: number) => {
+    setStato("carico");
+    setIndizi([]);
+    setRisposta("");
+    let res: Response;
+    try {
+      res = await fetch(`/api/enigma/${livello}`, { cache: "no-store" });
+    } catch {
+      setStato("errore");
+      return;
+    }
+    if (!res.ok) {
+      setStato("errore");
+      return;
+    }
+    const data: EnigmaDTO = await res.json();
+    setEnigma(data);
+    setStato("pronto");
+    onCambioLivello?.(data.livello);
   };
 
   useEffect(() => {
@@ -72,7 +115,16 @@ export function EnigmaLevel({ mioNick, onFail, onClearError, onRestart }: Enigma
     // dentro caricaLivello (fetch di rete), mai in modo sincrono qui.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     caricaLivello(PRIMO_LIVELLO, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (livelloRichiesto == null) return;
+    if (livelloRichiesto === enigma?.livello) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    mostraLivello(livelloRichiesto);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [livelloRichiesto]);
 
   const invia = async () => {
     if (!enigma || verificando) return;
@@ -96,7 +148,8 @@ export function EnigmaLevel({ mioNick, onFail, onClearError, onRestart }: Enigma
         return;
       }
       if (data.prossimo) {
-        await caricaLivello(data.prossimo);
+        setProssimoLivello(data.prossimo);
+        setStato("risolto");
       } else {
         setStato("completato");
       }
@@ -105,6 +158,13 @@ export function EnigmaLevel({ mioNick, onFail, onClearError, onRestart }: Enigma
     } finally {
       setVerificando(false);
     }
+  };
+
+  const avanza = () => {
+    if (prossimoLivello == null) return;
+    apriPortale(() => {
+      caricaLivello(prossimoLivello, true);
+    });
   };
 
   const chiediIndizio = async () => {
@@ -138,6 +198,17 @@ export function EnigmaLevel({ mioNick, onFail, onClearError, onRestart }: Enigma
     if (e.key === "Enter") invia();
   };
 
+  /* Il portale deve uscire dal .card (che ha un transform: rotate,
+     quindi crea un containing block per gli elementi position:fixed)
+     per coprire davvero tutto lo schermo, come nei livelli 1-3. */
+  const portaleOverlay =
+    portale && typeof document !== "undefined"
+      ? createPortal(
+          <Portal rect={portale} lit={portale.lit} leafOpen={portale.leafOpen} zoom={portale.zoom} />,
+          document.body
+        )
+      : null;
+
   if (stato === "carico") {
     return (
       <>
@@ -155,6 +226,19 @@ export function EnigmaLevel({ mioNick, onFail, onClearError, onRestart }: Enigma
         <button className="btn" onClick={() => caricaLivello(PRIMO_LIVELLO)}>
           Riprova
         </button>
+      </>
+    );
+  }
+
+  if (stato === "risolto") {
+    return (
+      <>
+        <p className="kicker">
+          Livello {enigma!.livello} — {enigma!.titolo}
+        </p>
+        <p className="riddle">Esatto.</p>
+        <Door sceneRef={doorSceneRef} onComplete={avanza} />
+        {portaleOverlay}
       </>
     );
   }
@@ -203,20 +287,26 @@ export function EnigmaLevel({ mioNick, onFail, onClearError, onRestart }: Enigma
         </div>
       )}
 
-      <input
-        className="field"
-        placeholder="La tua risposta"
-        value={risposta}
-        onChange={(e) => setRisposta(e.target.value)}
-        onKeyDown={onEnter}
-      />
+      {enigma!.risolto ? (
+        <p className="aside">Hai già risolto questo enigma.</p>
+      ) : (
+        <>
+          <input
+            className="field"
+            placeholder="La tua risposta"
+            value={risposta}
+            onChange={(e) => setRisposta(e.target.value)}
+            onKeyDown={onEnter}
+          />
 
-      <button className="btn" onClick={invia} disabled={verificando}>
-        {verificando ? "Un istante…" : "Consegna la risposta"}
-      </button>
-      <button className="btnGhost" onClick={chiediIndizio} disabled={chiedendoIndizio || !puoIndizio}>
-        {chiedendoIndizio ? "Un istante…" : puoIndizio ? "Chiedi un indizio" : "Nessun altro indizio"}
-      </button>
+          <button className="btn" onClick={invia} disabled={verificando}>
+            {verificando ? "Un istante…" : "Consegna la risposta"}
+          </button>
+          <button className="btnGhost" onClick={chiediIndizio} disabled={chiedendoIndizio || !puoIndizio}>
+            {chiedendoIndizio ? "Un istante…" : puoIndizio ? "Chiedi un indizio" : "Nessun altro indizio"}
+          </button>
+        </>
+      )}
     </>
   );
 }
