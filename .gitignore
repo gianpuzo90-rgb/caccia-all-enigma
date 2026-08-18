@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# soluzioni in chiaro: mai in git, restano solo in locale
+scripts/semina-enigmi.ts
