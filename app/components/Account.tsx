@@ -34,7 +34,7 @@ export function Account({ sessione, livelloOnboarding, onClose, onSignedOut }: A
       <div className="fineprint">
         <p>Email: {sessione.email}</p>
         <p>Ingresso completato: livello {Math.min(livelloOnboarding, 3)} di 3.</p>
-        <p>Parola d&apos;ordine: gestita da Supabase Auth, mai in chiaro.</p>
+        <p>La password: mai in chiaro, non la vede nessuno.</p>
       </div>
 
       <div className="toggleRow">

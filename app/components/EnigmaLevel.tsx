@@ -77,7 +77,7 @@ export function EnigmaLevel({ mioNick, onFail, onClearError, onRestart }: Enigma
   const invia = async () => {
     if (!enigma || verificando) return;
     onClearError();
-    if (!risposta.trim()) return onFail("Scrivi una risposta prima di consegnarla.");
+    if (!risposta.trim()) return onFail("Il Custode aspetta una risposta.");
 
     setVerificando(true);
     try {
@@ -88,11 +88,11 @@ export function EnigmaLevel({ mioNick, onFail, onClearError, onRestart }: Enigma
       });
       const data = await res.json();
       if (!res.ok) {
-        onFail(data.errore || "Qualcosa è andato storto. Riprova.");
+        onFail(data.errore || "Il Custode non sa dirti cos'è andato storto. Riprova.");
         return;
       }
       if (!data.corretto) {
-        onFail("Non è la risposta giusta. Riprova.");
+        onFail("Non è quella. Riprova.");
         return;
       }
       if (data.prossimo) {
@@ -101,7 +101,7 @@ export function EnigmaLevel({ mioNick, onFail, onClearError, onRestart }: Enigma
         setStato("completato");
       }
     } catch {
-      onFail("Qualcosa è andato storto. Riprova.");
+      onFail("Il Custode non sa dirti cos'è andato storto. Riprova.");
     } finally {
       setVerificando(false);
     }
@@ -121,14 +121,14 @@ export function EnigmaLevel({ mioNick, onFail, onClearError, onRestart }: Enigma
       if (!res.ok) {
         onFail(
           data.errore === "nessun altro indizio"
-            ? "Non ci sono altri indizi per questo enigma."
-            : data.errore || "Qualcosa è andato storto."
+            ? "Il Custode non ha altro da suggerire."
+            : data.errore || "Il Custode non sa dirti cos'è andato storto."
         );
         return;
       }
       setIndizi((prev) => (prev.some((i) => i.ordine === data.ordine) ? prev : [...prev, data]));
     } catch {
-      onFail("Qualcosa è andato storto. Riprova.");
+      onFail("Il Custode non sa dirti cos'è andato storto. Riprova.");
     } finally {
       setChiedendoIndizio(false);
     }
@@ -151,7 +151,7 @@ export function EnigmaLevel({ mioNick, onFail, onClearError, onRestart }: Enigma
     return (
       <>
         <p className="kicker">Livello IV — L&apos;Enigma</p>
-        <p className="riddle">L&apos;enigma non è disponibile in questo momento. Riprova tra poco.</p>
+        <p className="riddle">L&apos;enigma tace, per ora. Riprova tra poco.</p>
         <button className="btn" onClick={() => caricaLivello(PRIMO_LIVELLO)}>
           Riprova
         </button>

@@ -66,10 +66,10 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
     if (nickStatus === "occupato") return onFail("Quel nome è già di un altro Cercatore.");
     if (nickStatus === "controllo") return onFail("Un istante: sto ancora controllando il nome.");
     if (!EMAIL_RE.test(email)) return onFail("Quell'email non convince il Custode.");
-    if (reg.pass.length < 8) return onFail("La parola d'ordine vuole almeno 8 caratteri.");
+    if (reg.pass.length < 8) return onFail("La password vuole almeno 8 caratteri.");
     if (DEBOLI.includes(reg.pass.toLowerCase()))
       return onFail("Troppo prevedibile: quella la indovinerebbe chiunque.");
-    if (reg.pass !== reg.pass2) return onFail("Le due parole d'ordine non coincidono.");
+    if (reg.pass !== reg.pass2) return onFail("Le due password non coincidono.");
     if (!reg.eta) return onFail("Serve la spunta obbligatoria su età e informativa.");
 
     setOccupato(true);
@@ -85,7 +85,7 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
       if (/registered|exists/i.test(error.message)) {
         return onFail("Questa email è già iscritta alla Caccia. Prova a entrare.");
       }
-      return onFail(error.message || "Qualcosa è andato storto. Riprova.");
+      return onFail(error.message || "Il Custode non sa dirti cos'è andato storto. Riprova.");
     }
 
     setReg({ nick: "", email: "", pass: "", pass2: "", eta: false, marketing: false });
@@ -100,7 +100,7 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
   const entra = async () => {
     onClearError();
     const email = log.email.trim().toLowerCase();
-    if (!EMAIL_RE.test(email) || !log.pass) return onFail("Email o parola d'ordine non corrette.");
+    if (!EMAIL_RE.test(email) || !log.pass) return onFail("Email o password non convincono il Custode.");
 
     setOccupato(true);
     const supabase = supabaseBrowser();
@@ -108,7 +108,7 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
     setOccupato(false);
 
     if (error) {
-      return onFail("Email o parola d'ordine non corrette.");
+      return onFail("Email o password non convincono il Custode.");
     }
     setLog({ email: "", pass: "" });
     onAuthenticated();
@@ -151,8 +151,8 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
             <p className="aside" style={{ marginTop: -8 }}>
               {!NICK_RE.test(reg.nick.trim()) && "3-20 caratteri: lettere, numeri o trattino basso."}
               {NICK_RE.test(reg.nick.trim()) && nickStatus === "controllo" && "Controllo il nome…"}
-              {NICK_RE.test(reg.nick.trim()) && nickStatus === "libero" && "Nome disponibile."}
-              {NICK_RE.test(reg.nick.trim()) && nickStatus === "occupato" && "Nome già preso."}
+              {NICK_RE.test(reg.nick.trim()) && nickStatus === "libero" && "Nome libero."}
+              {NICK_RE.test(reg.nick.trim()) && nickStatus === "occupato" && "Già di un altro Cercatore."}
             </p>
           )}
           <input
@@ -166,7 +166,7 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
           <input
             className="field"
             type="password"
-            placeholder="Parola d'ordine (min. 8 caratteri)"
+            placeholder="Password (min. 8 caratteri)"
             autoComplete="new-password"
             value={reg.pass}
             onChange={(e) => setReg({ ...reg, pass: e.target.value })}
@@ -181,7 +181,7 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
           <input
             className="field"
             type="password"
-            placeholder="Ripeti la parola d'ordine"
+            placeholder="Ripeti la password"
             autoComplete="new-password"
             value={reg.pass2}
             onChange={(e) => setReg({ ...reg, pass2: e.target.value })}
@@ -232,7 +232,7 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
           <input
             className="field"
             type="password"
-            placeholder="Parola d'ordine"
+            placeholder="Password"
             autoComplete="current-password"
             value={log.pass}
             onChange={(e) => setLog({ ...log, pass: e.target.value })}
@@ -243,9 +243,9 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
           </button>
           <button
             className="linkBtn"
-            onClick={() => onNota("Nel sito vero qui parte l'email di recupero: serve il backend.")}
+            onClick={() => onNota("Il recupero della password arriverà presto.")}
           >
-            Parola d&apos;ordine dimenticata?
+            Password dimenticata?
           </button>
         </>
       )}

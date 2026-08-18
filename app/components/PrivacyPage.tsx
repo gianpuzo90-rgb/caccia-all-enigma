@@ -12,7 +12,7 @@ export function PrivacyPage({ onClose }: { onClose: () => void }) {
         <p>[Nome e cognome / ragione sociale], [indirizzo], contattabile a [email].</p>
         <h3>Quali dati raccogliamo</h3>
         <p>
-          Nome da Cercatore, email, parola d&apos;ordine (gestita da Supabase Auth, mai leggibile),
+          Nome da Cercatore, email, password (gestita da Supabase Auth, mai leggibile),
           data di iscrizione e progresso nel gioco.
         </p>
         <h3>Perché</h3>
