@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { CampoPassword } from "../components/CampoPassword";
 import { forzaPassword } from "../components/utils";
 
 type Stato = "verificando" | "pronto" | "invalido" | "fatto";
@@ -112,9 +113,7 @@ export default function ReimpostaPassword() {
           {stato === "pronto" && (
             <>
               <p className="kicker">Reimposta password</p>
-              <input
-                className="field"
-                type="password"
+              <CampoPassword
                 placeholder="Nuova password (min. 8 caratteri)"
                 autoComplete="new-password"
                 value={pass}
@@ -127,9 +126,7 @@ export default function ReimpostaPassword() {
                   ))}
                 </div>
               )}
-              <input
-                className="field"
-                type="password"
+              <CampoPassword
                 placeholder="Ripeti la password"
                 autoComplete="new-password"
                 value={pass2}

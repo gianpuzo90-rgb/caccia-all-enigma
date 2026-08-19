@@ -118,6 +118,34 @@
 .doorScene { position: relative; width: 240px; height: 320px; margin: 4px auto 0; }
 .doorSvg { width: 100%; height: 100%; display: block; }
 
+/* --------- Livello IV: la stanza allagata --------- */
+
+.sottacqua { position: relative; width: 240px; height: 320px; margin: 4px auto 0; }
+.sottacqua .doorScene { margin: 0; }
+
+.acqua {
+  position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  border-radius: 6px; clip-path: inset(0 0 0 0);
+  transition: clip-path 1.8s cubic-bezier(.65,0,.35,1);
+}
+.sottacqua.tirata .acqua { clip-path: inset(100% 0 0 0); }
+
+.acquaCorpo {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(94,168,178,0.4), rgba(37,92,110,0.52) 55%, rgba(20,58,72,0.62));
+}
+.acquaOnda { position: absolute; top: 0; left: 0; width: 100%; height: 16px; fill: rgba(130,204,210,0.55); }
+
+.catenella {
+  position: absolute; left: 6px; bottom: 4px; z-index: 6;
+  background: none; border: none; padding: 0; cursor: pointer;
+  transition: opacity .4s ease .35s, transform .4s ease .35s;
+}
+.catenella:disabled { cursor: default; }
+.catenella.tirata { opacity: 0; transform: translateY(10px); }
+.catenella:not(:disabled):hover { filter: brightness(1.15); }
+.catenella:focus-visible { outline: 2px solid var(--lanterna); outline-offset: 3px; border-radius: 50%; }
+
 .leaf { transform-box: fill-box; transform-origin: 0% 50%; transition: transform .8s ease, opacity .8s ease; }
 .leaf.open { transform: scaleX(0.08); opacity: 0.3; }
 
@@ -204,6 +232,17 @@
 }
 .field:focus { border-color: var(--sigillo); box-shadow: 0 0 0 3px rgba(166,61,47,0.18); }
 .field::placeholder { color: rgba(43,36,24,0.4); }
+
+.fieldPass { position: relative; margin: 0 0 12px; }
+.fieldPass .field { margin: 0; padding-right: 44px; }
+.fieldPassToggle {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 40px; display: flex; align-items: center; justify-content: center;
+  background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+  color: rgba(43,36,24,0.5);
+}
+.fieldPassToggle:hover { color: var(--sigillo); }
+.fieldPassToggle:focus-visible { outline: 2px solid var(--sigillo); outline-offset: -2px; border-radius: 3px; }
 
 .meter { display: flex; gap: 4px; margin: -6px 0 12px; }
 .meter .bar { flex: 1; height: 3px; border-radius: 2px; background: rgba(43,36,24,0.18); }
@@ -351,4 +390,5 @@
 @media (prefers-reduced-motion: reduce) {
   .card.in, .card.out, .card.shake { animation: none; }
   .portal, .pglow, .leaf, .step, .toggle, .toggle .knob, .btn { transition: none; }
+  .acqua, .catenella { transition: none; }
 }

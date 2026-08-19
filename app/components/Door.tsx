@@ -3,7 +3,7 @@
 import { useRef, useState, type RefObject } from "react";
 import { ARCH } from "./utils";
 
-type DoorVariant = "ottone" | "biscotto" | "serratura";
+type DoorVariant = "ottone" | "biscotto" | "serratura" | "scarico";
 
 type DoorProps = {
   onComplete: () => void;
@@ -183,6 +183,29 @@ export function Door({
             >
               <circle cx="12" cy="8.5" r="3.6" />
               <path d="M4.5 20.5 C4.5 15.5 8 13.8 12 13.8 C16 13.8 19.5 15.5 19.5 20.5" />
+            </g>
+          </svg>
+        ) : variant === "scarico" ? (
+          <svg viewBox="0 0 68 68" width="34" height="34">
+            <defs>
+              <radialGradient id="brassScarico" cx="38%" cy="32%" r="78%">
+                <stop offset="0%" stopColor="#dcbc7c" />
+                <stop offset="55%" stopColor="#a87f42" />
+                <stop offset="100%" stopColor="#6b4f26" />
+              </radialGradient>
+            </defs>
+            <circle cx="34" cy="34" r="27" fill="#1b140c" opacity="0.4" />
+            <circle cx="34" cy="34" r="23" fill="url(#brassScarico)" stroke="#4a3820" strokeWidth="2" />
+            <g
+              transform="translate(34 34) scale(1.55) translate(-12 -12)"
+              fill="none"
+              stroke="#150f08"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 3 C12 3 5.5 11.2 5.5 15.5 C5.5 19.4 8.4 22 12 22 C15.6 22 18.5 19.4 18.5 15.5 C18.5 11.2 12 3 12 3 Z" />
+              <line x1="4.5" y1="20" x2="19.5" y2="4" />
             </g>
           </svg>
         ) : (

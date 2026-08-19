@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { CampoPassword } from "./CampoPassword";
 import { DEBOLI, EMAIL_RE, NICK_RE, forzaPassword } from "./utils";
 
 type AuthProps = {
@@ -191,9 +192,7 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
             value={reg.email}
             onChange={(e) => setReg({ ...reg, email: e.target.value })}
           />
-          <input
-            className="field"
-            type="password"
+          <CampoPassword
             placeholder="Password (min. 8 caratteri)"
             autoComplete="new-password"
             value={reg.pass}
@@ -206,9 +205,7 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
               ))}
             </div>
           )}
-          <input
-            className="field"
-            type="password"
+          <CampoPassword
             placeholder="Ripeti la password"
             autoComplete="new-password"
             value={reg.pass2}
@@ -256,9 +253,7 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
             value={log.email}
             onChange={(e) => setLog({ ...log, email: e.target.value })}
           />
-          <input
-            className="field"
-            type="password"
+          <CampoPassword
             placeholder="Password"
             autoComplete="current-password"
             value={log.pass}

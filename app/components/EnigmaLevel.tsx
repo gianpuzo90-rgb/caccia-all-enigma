@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { EnigmaDTO, IndizioOk } from "./types";
 import { Classifica } from "./Classifica";
 import { Door } from "./Door";
 import { Portal } from "./Portal";
+import { Sottacqua } from "./Sottacqua";
 import { usePortale } from "./usePortale";
+
+/* Il livello IV apre su una stanza allagata: bisogna drenare l'acqua
+   (tirando la catenella in basso a sinistra) prima che il pomello si
+   sblocchi e faccia comparire l'indovinello vero e proprio. È una
+   scena su misura solo per questo livello, non un pattern generico. */
+const LIVELLO_ALLAGATO = 4;
 
 /* Il primo livello governato dal server: deve combaciare con
    PRIMO_LIVELLO_SERVER in lib/enigmi.ts (non importabile qui: usa
@@ -44,6 +51,8 @@ export function EnigmaLevel({
   const [indizi, setIndizi] = useState<IndizioOk[]>([]);
   const [verificando, setVerificando] = useState(false);
   const [chiedendoIndizio, setChiedendoIndizio] = useState(false);
+  const [acquaDrenata, setAcquaDrenata] = useState(false);
+  const sottacquaSceneRef = useRef<HTMLDivElement | null>(null);
 
   const { sceneRef: doorSceneRef, portale, apri: apriPortale } = usePortale();
 
@@ -256,6 +265,18 @@ export function EnigmaLevel({
         <button className="btn" onClick={onRestart}>
           Ricomincia la caccia
         </button>
+      </>
+    );
+  }
+
+  if (enigma!.livello === LIVELLO_ALLAGATO && !enigma!.risolto && !acquaDrenata) {
+    return (
+      <>
+        <p className="kicker">
+          Livello {enigma!.livello} — {enigma!.titolo}
+        </p>
+        <p className="riddle">L&apos;acqua ti arriva al collo.</p>
+        <Sottacqua sceneRef={sottacquaSceneRef} onSbloccato={() => setAcquaDrenata(true)} />
       </>
     );
   }
