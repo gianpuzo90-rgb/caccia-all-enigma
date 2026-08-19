@@ -3,7 +3,7 @@
 import { useRef, useState, type RefObject } from "react";
 import { ARCH } from "./utils";
 
-type DoorVariant = "ottone" | "biscotto" | "serratura" | "scarico";
+type DoorVariant = "ottone" | "biscotto" | "serratura" | "scarico" | "buio";
 
 type DoorProps = {
   onComplete: () => void;
@@ -92,27 +92,32 @@ export function Door({
           </linearGradient>
         </defs>
 
-        <path d={ARCH} fill="url(#doorlight)" opacity={progress} />
+        {/* al buio la luce che filtra dall'arco è l'unico feedback */}
+        <path d={ARCH} fill="url(#doorlight)" opacity={variant === "buio" ? progress * 0.55 : progress} />
 
-        <g className="leaf">
-          <path d={ARCH} fill="url(#wood)" stroke="#241b10" strokeWidth="3" />
-          <path d="M97 74 L97 300" stroke="#241b10" strokeWidth="1.5" opacity="0.45" />
-          <path d="M143 74 L143 300" stroke="#241b10" strokeWidth="1.5" opacity="0.45" />
-          <circle cx="62" cy="132" r="2.6" fill="#241b10" opacity="0.7" />
-          <circle cx="178" cy="132" r="2.6" fill="#241b10" opacity="0.7" />
-          <circle cx="62" cy="288" r="2.6" fill="#241b10" opacity="0.7" />
-          <circle cx="178" cy="288" r="2.6" fill="#241b10" opacity="0.7" />
-        </g>
+        {variant !== "buio" && (
+          <>
+            <g className="leaf">
+              <path d={ARCH} fill="url(#wood)" stroke="#241b10" strokeWidth="3" />
+              <path d="M97 74 L97 300" stroke="#241b10" strokeWidth="1.5" opacity="0.45" />
+              <path d="M143 74 L143 300" stroke="#241b10" strokeWidth="1.5" opacity="0.45" />
+              <circle cx="62" cy="132" r="2.6" fill="#241b10" opacity="0.7" />
+              <circle cx="178" cy="132" r="2.6" fill="#241b10" opacity="0.7" />
+              <circle cx="62" cy="288" r="2.6" fill="#241b10" opacity="0.7" />
+              <circle cx="178" cy="288" r="2.6" fill="#241b10" opacity="0.7" />
+            </g>
 
-        <path
-          d="M40 302 L40 130 Q40 58 120 58 Q200 58 200 130 L200 302"
-          fill="none"
-          stroke="#2b2418"
-          strokeWidth="9"
-          strokeLinecap="round"
-          opacity="0.9"
-        />
-        <path d="M32 302 L208 302" stroke="#2b2418" strokeWidth="9" strokeLinecap="round" opacity="0.9" />
+            <path
+              d="M40 302 L40 130 Q40 58 120 58 Q200 58 200 130 L200 302"
+              fill="none"
+              stroke="#2b2418"
+              strokeWidth="9"
+              strokeLinecap="round"
+              opacity="0.9"
+            />
+            <path d="M32 302 L208 302" stroke="#2b2418" strokeWidth="9" strokeLinecap="round" opacity="0.9" />
+          </>
+        )}
       </svg>
 
       <div
@@ -138,7 +143,7 @@ export function Door({
           }
         }}
       >
-        {variant === "biscotto" ? (
+        {variant === "buio" ? null : variant === "biscotto" ? (
           <svg viewBox="0 0 68 68" width="36" height="36">
             <defs>
               <radialGradient id="pasta" cx="36%" cy="28%" r="82%">

@@ -166,6 +166,18 @@
 .pompaLeva.attiva .ruota { animation: pompaGira .6s linear infinite; }
 @keyframes pompaGira { to { transform: rotate(360deg); } }
 
+/* --------- Livello V: Al Buio --------- */
+/* Nero pieno che copre l'intera carta (margini negativi sul padding
+   della card). Il padding-top replica l'ingombro del kicker degli
+   altri livelli, così il pomello resta esattamente dove è sempre. */
+.buio {
+  background: #000;
+  border-radius: 6px;
+  margin: -34px -24px -26px;
+  padding: 59px 0 26px;
+  overflow: hidden;
+}
+
 /* rotellina di caricamento generica */
 .caricamento { min-height: 240px; display: flex; align-items: center; justify-content: center; }
 .rotella {

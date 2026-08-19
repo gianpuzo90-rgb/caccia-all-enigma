@@ -32,7 +32,8 @@ export async function POST(req: NextRequest) {
   if (!Number.isInteger(livello) || livello < PRIMO_LIVELLO_SERVER) {
     return NextResponse.json({ errore: "livello non valido" }, { status: 400 });
   }
-  if (!risposta.trim() || risposta.length > LUNGHEZZA_MAX) {
+  // la risposta può essere vuota SOLO per i livelli di scena (vedi sotto)
+  if (risposta.length > LUNGHEZZA_MAX) {
     return NextResponse.json({ errore: "risposta non valida" }, { status: 400 });
   }
 
@@ -70,8 +71,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ errore: "enigma non disponibile" }, { status: 404 });
   }
 
-  const candidati = hashCandidati(livello, risposta);
-  const corretto = candidati.some((h) => enigma.soluzioni_hash.includes(h));
+  /* Livello di scena: nessuna soluzione seminata (es. "Al Buio", dove
+     la prova è trovare il pomello). Il completamento arriva dal gesto,
+     non da una risposta: qualunque POST sul livello sbloccato vale.
+     È teatro come i livelli 1-3, non un enigma: chi lo salta via curl
+     non ottiene nulla, gli enigmi veri restano dietro i loro hash. */
+  const scena = (enigma.soluzioni_hash?.length ?? 0) === 0;
+  if (!scena && !risposta.trim()) {
+    return NextResponse.json({ errore: "risposta non valida" }, { status: 400 });
+  }
+
+  const candidati = scena ? [] : hashCandidati(livello, risposta);
+  const corretto = scena || candidati.some((h) => enigma.soluzioni_hash.includes(h));
 
   // 4) traccia sempre: serve al rate limit e a capire dove si incagliano
   await admin.from("tentativi").insert({

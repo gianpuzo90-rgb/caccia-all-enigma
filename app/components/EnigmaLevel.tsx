@@ -13,15 +13,17 @@ import { usePortale } from "./usePortale";
 import { K, leggiLocale, romano, scriviLocale } from "./utils";
 
 /* Il livello IV apre su una stanza allagata: si tira la catenella del
-   tappo, l'acqua defluisce, il pomello si sblocca. Quell'acqua però
-   non svanisce: scende al livello V, che si apre con lo stesso pomello
-   e la stessa regola. La pompa del V la rimanda su, ma tiene solo se
-   il tappo del IV è tornato al suo posto — altrimenti rifluisce dallo
-   stesso scarico. Rivisitando il IV si ritrova la stanza stessa, di
-   norma asciutta, col tappo manovrabile; se la pompa ha lavorato,
-   di nuovo allagata. L'acqua o è al IV o è al V, mai altrove. */
+   tappo, l'acqua defluisce, il pomello si sblocca. Il V è "Al Buio":
+   schermo nero, ma il pomello è al solito posto e funziona — la prova
+   è trovarlo a memoria. L'acqua del IV intanto è colata fino al VI,
+   dove la pompa la rimanda su, ma tiene solo se il tappo del IV è
+   tornato al suo posto — altrimenti rifluisce dallo stesso scarico.
+   Rivisitando il IV si ritrova la stanza stessa, di norma asciutta,
+   col tappo manovrabile; se la pompa ha lavorato, di nuovo allagata.
+   L'acqua o è al IV o è al VI, mai altrove. */
 const LIVELLO_ALLAGATO = 4;
-const LIVELLO_POMPA = 5;
+const LIVELLO_BUIO = 5;
+const LIVELLO_POMPA = 6;
 
 /* Il primo livello governato dal server: deve combaciare con
    PRIMO_LIVELLO_SERVER in lib/enigmi.ts (non importabile qui: usa
@@ -284,6 +286,44 @@ export function EnigmaLevel({
     if (e.key === "Enter") invia();
   };
 
+  /* Al Buio non ha risposta: il completamento è il gesto stesso di
+     girare il pomello. Il server accetta i livelli di scena (nessuna
+     soluzione seminata) senza risposta; l'avanzamento resta suo. */
+  const [tentativoBuio, setTentativoBuio] = useState(0);
+  const completaBuio = async () => {
+    if (!enigma || verificando) return;
+    onClearError();
+    setVerificando(true);
+    try {
+      const res = await fetch("/api/verifica", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ livello: enigma.livello, risposta: "" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.corretto) {
+        onFail(data.errore || "Qualcosa è andato storto. Riprova.");
+        setTentativoBuio((t) => t + 1); // rimonta il pomello: si può rigirare
+        return;
+      }
+      if (data.prossimo) {
+        setFrontiera(data.prossimo);
+        onLivelloMassimo?.(data.prossimo);
+        const prossimo = data.prossimo;
+        apriPortale(() => caricaLivello(prossimo, true));
+      } else {
+        setFrontiera(enigma.livello + 1);
+        onLivelloMassimo?.(enigma.livello);
+        setStato("completato");
+      }
+    } catch {
+      onFail("Qualcosa è andato storto. Riprova.");
+      setTentativoBuio((t) => t + 1);
+    } finally {
+      setVerificando(false);
+    }
+  };
+
   /* Il portale deve uscire dal .card (che ha un transform: rotate,
      quindi crea un containing block per gli elementi position:fixed)
      per coprire davvero tutto lo schermo, come nei livelli 1-3. */
@@ -356,6 +396,19 @@ export function EnigmaLevel({
           onTappoRimosso={() => aggiornaIdraulica({ tappoInserito: false, acquaAlQuarto: false })}
           onSbloccato={() => setAcquaDrenata(true)}
         />
+      </>
+    );
+  }
+
+  /* Al Buio: nessun testo, nessuna porta visibile. Solo nero, e il
+     pomello che funziona dove è sempre stato. */
+  if (enigma!.livello === LIVELLO_BUIO && !enigma!.risolto) {
+    return (
+      <>
+        <div className="buio">
+          <Door key={tentativoBuio} sceneRef={doorSceneRef} variant="buio" onComplete={completaBuio} />
+        </div>
+        {portaleOverlay}
       </>
     );
   }
