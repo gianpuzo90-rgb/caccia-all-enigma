@@ -27,6 +27,7 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
   });
   const [log, setLog] = useState({ email: "", pass: "" });
   const [occupato, setOccupato] = useState(false);
+  const [inviandoRecupero, setInviandoRecupero] = useState(false);
   const [nickStatus, setNickStatus] = useState<NickStatus>("idle");
 
   const nickRequestId = useRef(0);
@@ -82,10 +83,18 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
     setOccupato(false);
 
     if (error) {
-      if (/registered|exists/i.test(error.message)) {
+      if (error.code === "user_already_exists" || error.code === "email_exists") {
         return onFail("Questa email è già registrata. Prova ad accedere.");
       }
       return onFail(error.message || "Si è verificato un errore. Riprova.");
+    }
+
+    // Per non trasformare la registrazione in un oracolo di email esistenti,
+    // Supabase non lancia un errore se l'email è già di un account confermato:
+    // risponde "successo" ma con identities vuoto. È l'unico modo per
+    // accorgersene lato client.
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      return onFail("Questa email è già registrata. Prova ad accedere.");
     }
 
     setReg({ nick: "", email: "", pass: "", pass2: "", eta: false, marketing: false });
@@ -108,10 +117,30 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
     setOccupato(false);
 
     if (error) {
+      if (error.code === "email_not_confirmed") {
+        return onFail("Devi prima confermare l'email: controlla la posta.");
+      }
       return onFail("Credenziali non valide.");
     }
     setLog({ email: "", pass: "" });
     onAuthenticated();
+  };
+
+  const recuperaPassword = async () => {
+    onClearError();
+    const email = log.email.trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) return onFail("Inserisci prima la tua email qui sopra.");
+
+    setInviandoRecupero(true);
+    const supabase = supabaseBrowser();
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reimposta-password`,
+    });
+    setInviandoRecupero(false);
+    // Stesso principio del controllo email in registrazione: il messaggio
+    // resta uguale sia che l'email esista sia che no, altrimenti questo
+    // stesso pulsante diventerebbe un oracolo di email registrate.
+    onNota("Se l'email è registrata, ti abbiamo mandato un link per reimpostare la password.");
   };
 
   return (
@@ -239,11 +268,8 @@ export function Auth({ onAuthenticated, onPrivacy, onClose, onFail, onClearError
           <button className="btn" onClick={entra} disabled={occupato}>
             {occupato ? "Un istante…" : "Accedi"}
           </button>
-          <button
-            className="linkBtn"
-            onClick={() => onNota("Funzione non ancora disponibile.")}
-          >
-            Password dimenticata?
+          <button className="linkBtn" onClick={recuperaPassword} disabled={inviandoRecupero}>
+            {inviandoRecupero ? "Un istante…" : "Password dimenticata?"}
           </button>
         </>
       )}
