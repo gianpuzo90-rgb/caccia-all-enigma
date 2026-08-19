@@ -262,6 +262,11 @@ export default function CacciaAllEnigma() {
                 setFinestraEnigmi(null);
               }
             }}
+            onLivelloMassimo={(l) => {
+              // Caccia completata: nessun livello "in corso", ma la barra
+              // deve comunque offrire i livelli risolti da rivisitare.
+              setLivelloEnigmaMax((prev) => (prev === null || l > prev ? l : prev));
+            }}
             richiesta={richiestaEnigma}
           />
         );
@@ -369,7 +374,13 @@ export default function CacciaAllEnigma() {
                 <button
                   key={n}
                   type="button"
-                  className={"step" + (n < (livelloEnigma ?? 0) ? " done" : "") + (n === livelloEnigma ? " now" : "")}
+                  // livelloEnigma null con la barra visibile = caccia
+                  // completata: tutti i livelli sono risolti, quindi "done".
+                  className={
+                    "step" +
+                    (n < (livelloEnigma ?? livelloEnigmaMax + 1) ? " done" : "") +
+                    (n === livelloEnigma ? " now" : "")
+                  }
                   aria-current={n === livelloEnigma ? "step" : undefined}
                   onClick={() => vaiALivelloEnigma(n)}
                 >

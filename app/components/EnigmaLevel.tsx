@@ -42,6 +42,10 @@ type EnigmaLevelProps = {
   onRestart: () => void;
   /** Livello attualmente mostrato, per la barra cliccabile del genitore. */
   onCambioLivello?: (livello: number) => void;
+  /** L'ultimo livello esistente, quando la caccia risulta completata:
+      senza questo la barra resterebbe vuota e gli enigmi risolti
+      diventerebbero irraggiungibili. */
+  onLivelloMassimo?: (livello: number) => void;
   /** Il genitore chiede di saltare a un livello già raggiunto (click
       sulla barra). La chiave cresce a ogni click, così anche una
       richiesta per lo stesso livello di prima viene riascoltata. */
@@ -58,6 +62,7 @@ export function EnigmaLevel({
   onClearError,
   onRestart,
   onCambioLivello,
+  onLivelloMassimo,
   richiesta,
 }: EnigmaLevelProps) {
   const [stato, setStato] = useState<Stato>("carico");
@@ -106,6 +111,7 @@ export function EnigmaLevel({
       setIndizi([]);
       setRisposta("");
     }
+    let ultimoEsistente: number | null = null;
     for (let l = livello; l < livello + LIMITE_RICERCA; l++) {
       let res: Response;
       try {
@@ -116,6 +122,7 @@ export function EnigmaLevel({
       }
       if (res.status === 404) {
         setFrontiera(l);
+        if (ultimoEsistente !== null) onLivelloMassimo?.(ultimoEsistente);
         setStato("completato");
         return;
       }
@@ -124,6 +131,7 @@ export function EnigmaLevel({
         return;
       }
       const data: EnigmaDTO = await res.json();
+      ultimoEsistente = data.livello;
       if (!data.risolto) {
         setEnigma(data);
         setFrontiera(data.livello);
@@ -202,6 +210,7 @@ export function EnigmaLevel({
         setStato("risolto");
       } else {
         setFrontiera(enigma.livello + 1);
+        onLivelloMassimo?.(enigma.livello);
         setStato("completato");
       }
     } catch {
