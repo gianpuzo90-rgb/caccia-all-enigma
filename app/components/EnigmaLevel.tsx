@@ -7,19 +7,33 @@ import { Classifica } from "./Classifica";
 import { Door } from "./Door";
 import { Portal } from "./Portal";
 import { Sottacqua } from "./Sottacqua";
+import { Pompa } from "./Pompa";
+import { Scarico } from "./Scarico";
 import { usePortale } from "./usePortale";
+import { K, leggiLocale, scriviLocale } from "./utils";
 
-/* Il livello IV apre su una stanza allagata: bisogna drenare l'acqua
-   (tirando la catenella in basso a sinistra) prima che il pomello si
-   sblocchi e faccia comparire l'indovinello vero e proprio. È una
-   scena su misura solo per questo livello, non un pattern generico. */
+/* Il livello IV apre su una stanza allagata: si tira la catenella del
+   tappo, l'acqua defluisce, il pomello si sblocca. Quell'acqua però
+   non svanisce: scende al livello V, che si apre con lo stesso pomello
+   e la stessa regola. La pompa del V la rimanda su, ma tiene solo se
+   il tappo del IV è tornato al suo posto — altrimenti rifluisce dallo
+   stesso scarico. Quindi: indietro al IV (dove lo scarico resta
+   manovrabile anche a enigma risolto), tappo dentro, di nuovo al V,
+   pompa. A quel punto l'acqua sta al IV, e rivisitandolo la si vede. */
 const LIVELLO_ALLAGATO = 4;
+const LIVELLO_POMPA = 5;
 
 /* Il primo livello governato dal server: deve combaciare con
    PRIMO_LIVELLO_SERVER in lib/enigmi.ts (non importabile qui: usa
    "crypto" di Node e non va bundlato lato client). */
 const PRIMO_LIVELLO = 4;
 const LIMITE_RICERCA = 200;
+
+/* Lo stato idraulico condiviso fra IV e V. Quasi tutto si deduce dai
+   progressi (per utente, su qualunque dispositivo): risolto il V,
+   l'acqua è per forza tornata al IV. Questi due bit contano solo
+   nella fase di mezzo e vivono in localStorage. */
+type Idraulica = { tappoInserito: boolean; pompaAzionata: boolean };
 
 type EnigmaLevelProps = {
   mioNick?: string;
@@ -28,8 +42,10 @@ type EnigmaLevelProps = {
   onRestart: () => void;
   /** Livello attualmente mostrato, per la barra cliccabile del genitore. */
   onCambioLivello?: (livello: number) => void;
-  /** Il genitore chiede di saltare a un livello già raggiunto (click sulla barra). */
-  livelloRichiesto?: number | null;
+  /** Il genitore chiede di saltare a un livello già raggiunto (click
+      sulla barra). La chiave cresce a ogni click, così anche una
+      richiesta per lo stesso livello di prima viene riascoltata. */
+  richiesta?: { livello: number; chiave: number } | null;
 };
 
 type Stato = "carico" | "pronto" | "risolto" | "completato" | "errore";
@@ -42,7 +58,7 @@ export function EnigmaLevel({
   onClearError,
   onRestart,
   onCambioLivello,
-  livelloRichiesto,
+  richiesta,
 }: EnigmaLevelProps) {
   const [stato, setStato] = useState<Stato>("carico");
   const [enigma, setEnigma] = useState<EnigmaDTO | null>(null);
@@ -51,8 +67,30 @@ export function EnigmaLevel({
   const [indizi, setIndizi] = useState<IndizioOk[]>([]);
   const [verificando, setVerificando] = useState(false);
   const [chiedendoIndizio, setChiedendoIndizio] = useState(false);
+
+  /* Scene d'acqua: i due gate superati in questa sessione (transienti,
+     il pomello si rigira dopo un ricaricamento) e i bit persistenti. */
   const [acquaDrenata, setAcquaDrenata] = useState(false);
+  const [acquaDrenataPompa, setAcquaDrenataPompa] = useState(false);
+  const [idraulica, setIdraulica] = useState<Idraulica>(
+    () => leggiLocale<Idraulica>(K.idraulica) ?? { tappoInserito: true, pompaAzionata: false }
+  );
   const sottacquaSceneRef = useRef<HTMLDivElement | null>(null);
+  const pompaSceneRef = useRef<HTMLDivElement | null>(null);
+
+  /* Il livello più basso non ancora risolto (o il primo oltre l'ultimo
+     enigma esistente): serve al "torna all'enigma in corso" e a dedurre
+     dove sta l'acqua quando i bit locali mancano (altro dispositivo). */
+  const [frontiera, setFrontiera] = useState<number | null>(null);
+
+  const aggiornaIdraulica = (patch: Partial<Idraulica>) => {
+    const next = { ...idraulica, ...patch };
+    setIdraulica(next);
+    scriviLocale(K.idraulica, next);
+  };
+
+  const acquaAlQuarto =
+    idraulica.pompaAzionata || (frontiera !== null && frontiera > LIVELLO_POMPA);
 
   const { sceneRef: doorSceneRef, portale, apri: apriPortale } = usePortale();
 
@@ -77,6 +115,7 @@ export function EnigmaLevel({
         return;
       }
       if (res.status === 404) {
+        setFrontiera(l);
         setStato("completato");
         return;
       }
@@ -87,6 +126,7 @@ export function EnigmaLevel({
       const data: EnigmaDTO = await res.json();
       if (!data.risolto) {
         setEnigma(data);
+        setFrontiera(data.livello);
         setStato("pronto");
         onCambioLivello?.(data.livello);
         return;
@@ -128,12 +168,12 @@ export function EnigmaLevel({
   }, []);
 
   useEffect(() => {
-    if (livelloRichiesto == null) return;
-    if (livelloRichiesto === enigma?.livello) return;
+    if (richiesta == null) return;
+    if (richiesta.livello === enigma?.livello) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    mostraLivello(livelloRichiesto);
+    mostraLivello(richiesta.livello);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [livelloRichiesto]);
+  }, [richiesta?.chiave]);
 
   const invia = async () => {
     if (!enigma || verificando) return;
@@ -158,8 +198,10 @@ export function EnigmaLevel({
       }
       if (data.prossimo) {
         setProssimoLivello(data.prossimo);
+        setFrontiera(data.prossimo);
         setStato("risolto");
       } else {
+        setFrontiera(enigma.livello + 1);
         setStato("completato");
       }
     } catch {
@@ -221,7 +263,7 @@ export function EnigmaLevel({
   if (stato === "carico") {
     return (
       <>
-        <p className="kicker">Livello IV — L&apos;Enigma</p>
+        <p className="kicker">L&apos;Enigma</p>
         <p className="riddle">Il Custode sta preparando la prova…</p>
       </>
     );
@@ -230,7 +272,7 @@ export function EnigmaLevel({
   if (stato === "errore") {
     return (
       <>
-        <p className="kicker">Livello IV — L&apos;Enigma</p>
+        <p className="kicker">L&apos;Enigma</p>
         <p className="riddle">L&apos;enigma tace, per ora. Riprova tra poco.</p>
         <button className="btn" onClick={() => caricaLivello(PRIMO_LIVELLO)}>
           Riprova
@@ -276,7 +318,30 @@ export function EnigmaLevel({
           Livello {enigma!.livello} — {enigma!.titolo}
         </p>
         <p className="riddle">L&apos;acqua ti arriva al collo.</p>
-        <Sottacqua sceneRef={sottacquaSceneRef} onSbloccato={() => setAcquaDrenata(true)} />
+        <Sottacqua
+          sceneRef={sottacquaSceneRef}
+          giaDrenata={!idraulica.tappoInserito}
+          onTappoRimosso={() => aggiornaIdraulica({ tappoInserito: false })}
+          onSbloccato={() => setAcquaDrenata(true)}
+        />
+      </>
+    );
+  }
+
+  if (enigma!.livello === LIVELLO_POMPA && !enigma!.risolto && !acquaDrenataPompa) {
+    return (
+      <>
+        <p className="kicker">
+          Livello {enigma!.livello} — {enigma!.titolo}
+        </p>
+        <p className="riddle">L&apos;acqua drenata di sopra è colata fin qui.</p>
+        <Pompa
+          sceneRef={pompaSceneRef}
+          tappoInserito={idraulica.tappoInserito}
+          giaDrenata={idraulica.pompaAzionata}
+          onPompata={() => aggiornaIdraulica({ pompaAzionata: true })}
+          onSbloccato={() => setAcquaDrenataPompa(true)}
+        />
       </>
     );
   }
@@ -309,7 +374,21 @@ export function EnigmaLevel({
       )}
 
       {enigma!.risolto ? (
-        <p className="aside">Hai già risolto questo enigma.</p>
+        <>
+          <p className="aside">Hai già risolto questo enigma.</p>
+          {enigma!.livello === LIVELLO_ALLAGATO && (
+            <Scarico
+              tappoInserito={idraulica.tappoInserito}
+              allagato={acquaAlQuarto}
+              onToggle={() => aggiornaIdraulica({ tappoInserito: !idraulica.tappoInserito })}
+            />
+          )}
+          {frontiera !== null && (
+            <button className="btnGhost" onClick={() => caricaLivello(frontiera)}>
+              Torna all&apos;enigma in corso
+            </button>
+          )}
+        </>
       ) : (
         <>
           <input

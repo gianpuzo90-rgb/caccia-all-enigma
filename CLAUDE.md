@@ -106,7 +106,15 @@ del web diventa gioco. Restano client-side perché non contengono segreti.
 - **III — Il Patto**: stessa porta, pomello d'ottone con inciso il simbolo
   del login (lo stesso dell'icona in alto a destra). Inerte finché non sei
   registrato; se lo forzi, l'icona in alto pulsa.
-- **IV in poi**: enigmi veri, serviti dal server.
+- **IV in poi**: enigmi veri, serviti dal server. Il IV e il V
+  condividono una scenografia: la stanza del IV è allagata e si drena
+  tirando la catenella del tappo; quell'acqua finisce nel V, dove una
+  pompa la rimanda su — ma tiene solo se prima si è tornati al IV
+  (lo scarico resta manovrabile a enigma risolto) a rimettere il tappo,
+  altrimenti l'acqua cala e ritorna. L'acqua non sparisce mai: o è al
+  IV o è al V. I due bit liberi (tappo, pompa) sono in localStorage
+  sotto `cae:idraulica`; il resto si deduce dai progressi server,
+  quindi regge al cambio di dispositivo.
 
 Regole di design emerse strada facendo:
 - Nessuna istruzione scritta: il gioco si spiega con il comportamento degli

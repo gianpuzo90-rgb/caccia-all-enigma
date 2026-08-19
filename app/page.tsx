@@ -69,10 +69,12 @@ export default function CacciaAllEnigma() {
 
   // livello IV+: quale enigma sta mostrando EnigmaLevel e il più alto
   // mai raggiunto in questa sessione (per la barra cliccabile in alto).
-  // livelloRichiesto è il canale per chiederle di saltare a un livello.
+  // richiestaEnigma è il canale per chiederle di saltare a un livello:
+  // la chiave cresce a ogni click, così ricliccare lo stesso livello
+  // dopo un avanzamento genera comunque una richiesta nuova.
   const [livelloEnigma, setLivelloEnigma] = useState<number | null>(null);
   const [livelloEnigmaMax, setLivelloEnigmaMax] = useState<number | null>(null);
-  const [livelloRichiesto, setLivelloRichiesto] = useState<number | null>(null);
+  const [richiestaEnigma, setRichiestaEnigma] = useState<{ livello: number; chiave: number } | null>(null);
   // Paginazione della barra: null = segui automaticamente il livello
   // attuale (mostra la finestra che finisce su di lui). Un valore
   // esplicito resta finché non si avanza di nuovo: sfogliare indietro
@@ -149,7 +151,7 @@ export default function CacciaAllEnigma() {
   const vaiALivelloEnigma = (n: number) => {
     if (livelloEnigmaMax !== null && n <= livelloEnigmaMax) {
       setError("");
-      setLivelloRichiesto(n);
+      setRichiestaEnigma((prev) => ({ livello: n, chiave: (prev?.chiave ?? 0) + 1 }));
     }
   };
 
@@ -190,7 +192,7 @@ export default function CacciaAllEnigma() {
     setView("game");
     setLivelloEnigma(null);
     setLivelloEnigmaMax(null);
-    setLivelloRichiesto(null);
+    setRichiestaEnigma(null);
     setFinestraEnigmi(null);
     scriviLocale(K.progresso, { level: 1 });
   };
@@ -260,7 +262,7 @@ export default function CacciaAllEnigma() {
                 setFinestraEnigmi(null);
               }
             }}
-            livelloRichiesto={livelloRichiesto}
+            richiesta={richiestaEnigma}
           />
         );
     }

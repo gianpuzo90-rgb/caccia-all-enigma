@@ -20,9 +20,10 @@ export const ROMANS = ["I", "II", "III"];
 export const ARCH = "M50 300 L50 132 Q50 70 120 70 Q190 70 190 132 L190 300 Z";
 
 /* ------------------------------ storage ------------------------------ */
-/* Solo per il consenso cookie e il progresso visivo dei livelli 1-3:
-   preferenze locali, non dati utente. Niente fallback in memoria: se
-   localStorage non c'è (SSR), semplicemente non si legge/scrive.     */
+/* Solo per il consenso cookie, il progresso visivo dei livelli 1-3 e
+   lo stato di scena dei livelli IV-V (tappo e pompa): preferenze
+   locali, non dati utente. Niente fallback in memoria: se localStorage
+   non c'è (SSR), semplicemente non si legge/scrive.                  */
 
 export function leggiLocale<T>(chiave: string): T | null {
   if (typeof window === "undefined") return null;
@@ -53,4 +54,5 @@ export function rimuoviLocale(chiave: string): void {
 export const K = {
   consenso: "cae:consenso",
   progresso: "cae:progresso",
+  idraulica: "cae:idraulica",
 };

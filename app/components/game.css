@@ -118,7 +118,7 @@
 .doorScene { position: relative; width: 240px; height: 320px; margin: 4px auto 0; }
 .doorSvg { width: 100%; height: 100%; display: block; }
 
-/* --------- Livello IV: la stanza allagata --------- */
+/* --------- Livelli IV e V: le stanze allagate --------- */
 
 .sottacqua { position: relative; width: 240px; height: 320px; margin: 4px auto 0; }
 .sottacqua .doorScene { margin: 0; }
@@ -129,6 +129,12 @@
   transition: clip-path 1.8s cubic-bezier(.65,0,.35,1);
 }
 .sottacqua.tirata .acqua { clip-path: inset(100% 0 0 0); }
+/* pompata a vuoto (tappo del IV ancora fuori): l'acqua cala e ritorna */
+.sottacqua.vana .acqua { animation: acquaVana 1.6s cubic-bezier(.45,0,.55,1); }
+@keyframes acquaVana {
+  0%, 100% { clip-path: inset(0 0 0 0); }
+  50%      { clip-path: inset(14% 0 0 0); }
+}
 
 .acquaCorpo {
   position: absolute; inset: 0;
@@ -145,6 +151,37 @@
 .catenella.tirata { opacity: 0; transform: translateY(10px); }
 .catenella:not(:disabled):hover { filter: brightness(1.15); }
 .catenella:focus-visible { outline: 2px solid var(--lanterna); outline-offset: 3px; border-radius: 50%; }
+
+/* la pompa del livello V, in basso a sinistra come la catenella */
+.pompaLeva {
+  position: absolute; left: 6px; bottom: 4px; z-index: 6;
+  background: none; border: none; padding: 0; cursor: pointer;
+  transition: opacity .4s ease .35s, transform .4s ease .35s;
+}
+.pompaLeva:disabled { cursor: default; }
+.pompaLeva.ritirata { opacity: 0; transform: translateY(10px); }
+.pompaLeva:not(:disabled):hover { filter: brightness(1.15); }
+.pompaLeva:focus-visible { outline: 2px solid var(--lanterna); outline-offset: 3px; border-radius: 50%; }
+.ruota { transform-box: fill-box; transform-origin: center; }
+.pompaLeva.attiva .ruota { animation: pompaGira .6s linear infinite; }
+@keyframes pompaGira { to { transform: rotate(360deg); } }
+
+/* lo scarico del IV rivisitato: il tappo si sfila e si rimette */
+.scarico {
+  display: block; margin: 2px auto 14px;
+  background: none; border: none; padding: 0; cursor: pointer;
+}
+.scarico:disabled { cursor: default; }
+.scarico:not(:disabled):hover .tappoCorpo { filter: brightness(1.25); }
+.scarico:focus-visible { outline: 2px solid var(--sigillo); outline-offset: 3px; border-radius: 4px; }
+.tappoCorpo { transition: transform .5s cubic-bezier(.4,0,.3,1); }
+.scaricoCatena { transition: opacity .4s ease; }
+.scarico .catFuori { opacity: 1; }
+.scarico .catDentro { opacity: 0; }
+.scarico.chiuso .catFuori { opacity: 0; }
+.scarico.chiuso .catDentro { opacity: 1; }
+.scaricoAcqua { opacity: 0; transition: opacity .8s ease; }
+.scarico.allagato .scaricoAcqua { opacity: 1; }
 
 .leaf { transform-box: fill-box; transform-origin: 0% 50%; transition: transform .8s ease, opacity .8s ease; }
 .leaf.open { transform: scaleX(0.08); opacity: 0.3; }
@@ -390,5 +427,6 @@
 @media (prefers-reduced-motion: reduce) {
   .card.in, .card.out, .card.shake { animation: none; }
   .portal, .pglow, .leaf, .step, .toggle, .toggle .knob, .btn { transition: none; }
-  .acqua, .catenella { transition: none; }
+  .acqua, .catenella, .pompaLeva, .tappoCorpo, .scaricoCatena, .scaricoAcqua { transition: none; }
+  .pompaLeva.attiva .ruota { animation: none; }
 }

@@ -5,19 +5,24 @@ import { Door } from "./Door";
 
 type SottacquaProps = {
   sceneRef: RefObject<HTMLDivElement | null>;
+  /** Il tappo era già stato tirato (riapertura dopo un ricaricamento). */
+  giaDrenata?: boolean;
+  onTappoRimosso?: () => void;
   onSbloccato: () => void;
 };
 
 /* Livello IV: la stanza è allagata. Bisogna tirare la catenella del
    tappo di scarico (in basso a sinistra) per far defluire l'acqua
-   prima che il pomello si sblocchi. */
-export function Sottacqua({ sceneRef, onSbloccato }: SottacquaProps) {
-  const [tirata, setTirata] = useState(false);
-  const [drenata, setDrenata] = useState(false);
+   prima che il pomello si sblocchi. L'acqua non svanisce: scende di
+   un piano, al livello V. */
+export function Sottacqua({ sceneRef, giaDrenata = false, onTappoRimosso, onSbloccato }: SottacquaProps) {
+  const [tirata, setTirata] = useState(giaDrenata);
+  const [drenata, setDrenata] = useState(giaDrenata);
 
   const tiraCatenella = () => {
     if (tirata) return;
     setTirata(true);
+    onTappoRimosso?.();
     setTimeout(() => setDrenata(true), 1900);
   };
 
