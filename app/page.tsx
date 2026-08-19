@@ -73,6 +73,12 @@ export default function CacciaAllEnigma() {
   const [livelloEnigma, setLivelloEnigma] = useState<number | null>(null);
   const [livelloEnigmaMax, setLivelloEnigmaMax] = useState<number | null>(null);
   const [livelloRichiesto, setLivelloRichiesto] = useState<number | null>(null);
+  // Paginazione della barra: null = segui automaticamente il livello
+  // attuale (mostra la finestra che finisce su di lui). Un valore
+  // esplicito resta finché non si avanza di nuovo: sfogliare indietro
+  // per rivedere un enigma vecchio non deve saltare via da solo.
+  const [finestraEnigmi, setFinestraEnigmi] = useState<number | null>(null);
+  const FINESTRA = 5;
 
   /* ------------------------- avvio ------------------------- */
 
@@ -147,6 +153,20 @@ export default function CacciaAllEnigma() {
     }
   };
 
+  // Inizio della finestra visibile sulla barra: se non è stata spostata
+  // a mano, segue il livello attuale (o il più alto raggiunto, prima
+  // che EnigmaLevel abbia riportato quale sta mostrando).
+  const inizioFinestra = (() => {
+    if (livelloEnigmaMax === null) return PRIMO_LIVELLO_ENIGMA;
+    const riferimento = livelloEnigma ?? livelloEnigmaMax;
+    const auto = Math.max(PRIMO_LIVELLO_ENIGMA, riferimento - FINESTRA + 1);
+    return finestraEnigmi ?? auto;
+  })();
+  const inizioFinestraMax =
+    livelloEnigmaMax === null ? PRIMO_LIVELLO_ENIGMA : Math.max(PRIMO_LIVELLO_ENIGMA, livelloEnigmaMax - FINESTRA + 1);
+  const puoScorrereIndietro = inizioFinestra > PRIMO_LIVELLO_ENIGMA;
+  const puoScorrereAvanti = inizioFinestra < inizioFinestraMax;
+
   /* --------------------- cookie (reale, in localStorage) --------------------- */
 
   const salvaConsenso = (statistiche: boolean) => {
@@ -171,6 +191,7 @@ export default function CacciaAllEnigma() {
     setLivelloEnigma(null);
     setLivelloEnigmaMax(null);
     setLivelloRichiesto(null);
+    setFinestraEnigmi(null);
     scriviLocale(K.progresso, { level: 1 });
   };
 
@@ -231,7 +252,13 @@ export default function CacciaAllEnigma() {
             onRestart={resetAll}
             onCambioLivello={(l) => {
               setLivelloEnigma(l);
-              setLivelloEnigmaMax((m) => (m === null ? l : Math.max(m, l)));
+              // Solo un avanzamento vero (non una rivisita all'indietro
+              // tramite la barra) riporta la finestra a seguire il livello
+              // attuale in automatico.
+              if (livelloEnigmaMax === null || l > livelloEnigmaMax) {
+                setLivelloEnigmaMax(l);
+                setFinestraEnigmi(null);
+              }
             }}
             livelloRichiesto={livelloRichiesto}
           />
@@ -324,16 +351,23 @@ export default function CacciaAllEnigma() {
               </button>
             );
           })}
-          {livelloEnigmaMax !== null && (
-            <span className="progressDiv" aria-hidden="true" />
+          {livelloEnigmaMax !== null && puoScorrereIndietro && (
+            <button
+              type="button"
+              className="pager"
+              aria-label="Enigmi precedenti"
+              onClick={() => setFinestraEnigmi(Math.max(PRIMO_LIVELLO_ENIGMA, inizioFinestra - FINESTRA))}
+            >
+              ‹
+            </button>
           )}
           {livelloEnigmaMax !== null &&
-            Array.from({ length: livelloEnigmaMax - PRIMO_LIVELLO_ENIGMA + 1 }, (_, i) => PRIMO_LIVELLO_ENIGMA + i).map(
+            Array.from({ length: Math.min(FINESTRA, livelloEnigmaMax - inizioFinestra + 1) }, (_, i) => inizioFinestra + i).map(
               (n) => (
                 <button
                   key={n}
                   type="button"
-                  className={"step num" + (n < (livelloEnigma ?? 0) ? " done" : "") + (n === livelloEnigma ? " now" : "")}
+                  className={"step" + (n < (livelloEnigma ?? 0) ? " done" : "") + (n === livelloEnigma ? " now" : "")}
                   aria-current={n === livelloEnigma ? "step" : undefined}
                   onClick={() => vaiALivelloEnigma(n)}
                 >
@@ -341,6 +375,16 @@ export default function CacciaAllEnigma() {
                 </button>
               )
             )}
+          {livelloEnigmaMax !== null && puoScorrereAvanti && (
+            <button
+              type="button"
+              className="pager"
+              aria-label="Enigmi successivi"
+              onClick={() => setFinestraEnigmi(Math.min(inizioFinestraMax, inizioFinestra + FINESTRA))}
+            >
+              ›
+            </button>
+          )}
         </div>
         {level > 1 && view === "game" && (
           <button className="resetBtn" onClick={resetAll}>
