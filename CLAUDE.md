@@ -110,11 +110,16 @@ del web diventa gioco. Restano client-side perché non contengono segreti.
   condividono una scenografia: la stanza del IV è allagata e si drena
   tirando la catenella del tappo; quell'acqua finisce nel V, dove una
   pompa la rimanda su — ma tiene solo se prima si è tornati al IV
-  (lo scarico resta manovrabile a enigma risolto) a rimettere il tappo,
-  altrimenti l'acqua cala e ritorna. L'acqua non sparisce mai: o è al
-  IV o è al V. I due bit liberi (tappo, pompa) sono in localStorage
-  sotto `cae:idraulica`; il resto si deduce dai progressi server,
-  quindi regge al cambio di dispositivo.
+  a rimettere il tappo, altrimenti l'acqua cala e ritorna. Rivisitando
+  il IV si ritrova la stanza stessa (senza acqua, o riallagata se la
+  pompa ha lavorato) col tappo manovrabile: metti e togli, e lo stato
+  resta. L'acqua non sparisce mai: o è al IV o è al V. I due bit
+  (tappo inserito, acqua al IV) sono in localStorage sotto
+  `cae:idraulica`; quando mancano si deducono dai progressi server,
+  quindi il gioco regge al cambio di dispositivo.
+- Le scene si presentano senza testi introduttivi, e la navigazione
+  fra i livelli già raggiunti è libera dalla barra in alto, tutta in
+  numeri romani.
 
 Regole di design emerse strada facendo:
 - Nessuna istruzione scritta: il gioco si spiega con il comportamento degli
@@ -131,7 +136,9 @@ Notte d'inchiostro (`#12141d`) illuminata da lanterna (`#e8a33d`). Ogni
 schermata è una carta di carta invecchiata (`#f2ead8`) con sigillo di
 ceralacca (`#a63d2f`), leggermente ruotata. Font: IM Fell English per i
 titoli, Spectral per il testo, IBM Plex Mono per l'interfaccia.
-Voce narrante: il Custode, asciutto e un po' beffardo.
+Niente voce narrante: i testi di servizio sono asciutti e diretti
+(il Custode è stato rimosso di proposito, non reintrodurlo). I
+caricamenti mostrano una rotellina generica, non frasi d'atmosfera.
 
 ---
 

@@ -13,7 +13,7 @@ import { CookiePreferencesPage } from "./components/CookiePreferencesPage";
 import { EnigmaLevel } from "./components/EnigmaLevel";
 import { UserGlyph } from "./components/icons";
 import { usePortale } from "./components/usePortale";
-import { K, ROMANS, leggiLocale, rimuoviLocale, scriviLocale } from "./components/utils";
+import { K, ROMANS, leggiLocale, rimuoviLocale, romano, scriviLocale } from "./components/utils";
 import type { Consenso, Sessione, View } from "./components/types";
 
 /* ==================================================================
@@ -320,7 +320,7 @@ export default function CacciaAllEnigma() {
     if (view === "auth" || view === "account") return <UserGlyph size={20} />;
     if (view === "privacy" || view === "cookie") return "§";
     if (level <= 3) return ROMANS[level - 1];
-    return livelloEnigma ?? "✓";
+    return livelloEnigma !== null ? romano(livelloEnigma) : "✓";
   };
 
   if (!pronto) return <div className="night" />;
@@ -384,7 +384,7 @@ export default function CacciaAllEnigma() {
                   aria-current={n === livelloEnigma ? "step" : undefined}
                   onClick={() => vaiALivelloEnigma(n)}
                 >
-                  {n}
+                  {romano(n)}
                 </button>
               )
             )}

@@ -8,18 +8,18 @@ import { Door } from "./Door";
 import { Portal } from "./Portal";
 import { Sottacqua } from "./Sottacqua";
 import { Pompa } from "./Pompa";
-import { Scarico } from "./Scarico";
+import { StanzaScarico } from "./StanzaScarico";
 import { usePortale } from "./usePortale";
-import { K, leggiLocale, scriviLocale } from "./utils";
+import { K, leggiLocale, romano, scriviLocale } from "./utils";
 
 /* Il livello IV apre su una stanza allagata: si tira la catenella del
    tappo, l'acqua defluisce, il pomello si sblocca. Quell'acqua però
    non svanisce: scende al livello V, che si apre con lo stesso pomello
    e la stessa regola. La pompa del V la rimanda su, ma tiene solo se
    il tappo del IV è tornato al suo posto — altrimenti rifluisce dallo
-   stesso scarico. Quindi: indietro al IV (dove lo scarico resta
-   manovrabile anche a enigma risolto), tappo dentro, di nuovo al V,
-   pompa. A quel punto l'acqua sta al IV, e rivisitandolo la si vede. */
+   stesso scarico. Rivisitando il IV si ritrova la stanza stessa, di
+   norma asciutta, col tappo manovrabile; se la pompa ha lavorato,
+   di nuovo allagata. L'acqua o è al IV o è al V, mai altrove. */
 const LIVELLO_ALLAGATO = 4;
 const LIVELLO_POMPA = 5;
 
@@ -29,11 +29,20 @@ const LIVELLO_POMPA = 5;
 const PRIMO_LIVELLO = 4;
 const LIMITE_RICERCA = 200;
 
-/* Lo stato idraulico condiviso fra IV e V. Quasi tutto si deduce dai
-   progressi (per utente, su qualunque dispositivo): risolto il V,
-   l'acqua è per forza tornata al IV. Questi due bit contano solo
-   nella fase di mezzo e vivono in localStorage. */
-type Idraulica = { tappoInserito: boolean; pompaAzionata: boolean };
+/* Lo stato idraulico condiviso fra IV e V, persistito in localStorage:
+   due bit veri (dov'è il tappo, dov'è l'acqua). Quando mancano — primo
+   avvio o altro dispositivo — si deducono dai progressi server. */
+type Idraulica = { tappoInserito: boolean; acquaAlQuarto: boolean };
+
+const leggiIdraulica = (): Idraulica | null => {
+  const v = leggiLocale<Partial<Idraulica> & { pompaAzionata?: boolean }>(K.idraulica);
+  if (!v) return null;
+  // pompaAzionata è il nome della prima versione dello stesso bit.
+  return {
+    tappoInserito: v.tappoInserito ?? true,
+    acquaAlQuarto: v.acquaAlQuarto ?? v.pompaAzionata ?? false,
+  };
+};
 
 type EnigmaLevelProps = {
   mioNick?: string;
@@ -42,9 +51,9 @@ type EnigmaLevelProps = {
   onRestart: () => void;
   /** Livello attualmente mostrato, per la barra cliccabile del genitore. */
   onCambioLivello?: (livello: number) => void;
-  /** L'ultimo livello esistente, quando la caccia risulta completata:
-      senza questo la barra resterebbe vuota e gli enigmi risolti
-      diventerebbero irraggiungibili. */
+  /** Il livello più alto che la barra deve offrire, quando non coincide
+      con quello mostrato: l'ultimo esistente a caccia completata, o il
+      livello appena sbloccato da una soluzione. */
   onLivelloMassimo?: (livello: number) => void;
   /** Il genitore chiede di saltare a un livello già raggiunto (click
       sulla barra). La chiave cresce a ogni click, così anche una
@@ -77,25 +86,39 @@ export function EnigmaLevel({
      il pomello si rigira dopo un ricaricamento) e i bit persistenti. */
   const [acquaDrenata, setAcquaDrenata] = useState(false);
   const [acquaDrenataPompa, setAcquaDrenataPompa] = useState(false);
-  const [idraulica, setIdraulica] = useState<Idraulica>(
-    () => leggiLocale<Idraulica>(K.idraulica) ?? { tappoInserito: true, pompaAzionata: false }
-  );
+  const [idraulica, setIdraulica] = useState<Idraulica | null>(() => leggiIdraulica());
   const sottacquaSceneRef = useRef<HTMLDivElement | null>(null);
   const pompaSceneRef = useRef<HTMLDivElement | null>(null);
 
   /* Il livello più basso non ancora risolto (o il primo oltre l'ultimo
      enigma esistente): serve al "torna all'enigma in corso" e a dedurre
-     dove sta l'acqua quando i bit locali mancano (altro dispositivo). */
+     lo stato idraulico quando i bit locali mancano. */
   const [frontiera, setFrontiera] = useState<number | null>(null);
 
+  /* Finché i bit non sono noti si assume lo stato di partenza. */
+  const idr = idraulica ?? { tappoInserito: true, acquaAlQuarto: false };
+
   const aggiornaIdraulica = (patch: Partial<Idraulica>) => {
-    const next = { ...idraulica, ...patch };
+    const next = { ...idr, ...patch };
     setIdraulica(next);
     scriviLocale(K.idraulica, next);
   };
 
-  const acquaAlQuarto =
-    idraulica.pompaAzionata || (frontiera !== null && frontiera > LIVELLO_POMPA);
+  /* Bit assenti (primo avvio o cambio di dispositivo): si deducono dai
+     progressi. Oltre il V l'acqua è per forza tornata su, col tappo
+     dentro; fermi al V l'acqua è di sotto, tappo fuori com'è rimasto. */
+  useEffect(() => {
+    if (idraulica !== null || frontiera === null) return;
+    const dedotta: Idraulica =
+      frontiera > LIVELLO_POMPA
+        ? { tappoInserito: true, acquaAlQuarto: true }
+        : frontiera > LIVELLO_ALLAGATO
+          ? { tappoInserito: false, acquaAlQuarto: false }
+          : { tappoInserito: true, acquaAlQuarto: false };
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIdraulica(dedotta);
+    scriviLocale(K.idraulica, dedotta);
+  }, [frontiera, idraulica]);
 
   const { sceneRef: doorSceneRef, portale, apri: apriPortale } = usePortale();
 
@@ -186,7 +209,7 @@ export function EnigmaLevel({
   const invia = async () => {
     if (!enigma || verificando) return;
     onClearError();
-    if (!risposta.trim()) return onFail("Il Custode aspetta una risposta.");
+    if (!risposta.trim()) return onFail("Scrivi una risposta.");
 
     setVerificando(true);
     try {
@@ -197,7 +220,7 @@ export function EnigmaLevel({
       });
       const data = await res.json();
       if (!res.ok) {
-        onFail(data.errore || "Il Custode non sa dirti cos'è andato storto. Riprova.");
+        onFail(data.errore || "Qualcosa è andato storto. Riprova.");
         return;
       }
       if (!data.corretto) {
@@ -207,6 +230,9 @@ export function EnigmaLevel({
       if (data.prossimo) {
         setProssimoLivello(data.prossimo);
         setFrontiera(data.prossimo);
+        // il prossimo livello è già sbloccato lato server: la barra deve
+        // offrirlo subito, anche se si naviga via prima di varcare la porta
+        onLivelloMassimo?.(data.prossimo);
         setStato("risolto");
       } else {
         setFrontiera(enigma.livello + 1);
@@ -214,7 +240,7 @@ export function EnigmaLevel({
         setStato("completato");
       }
     } catch {
-      onFail("Il Custode non sa dirti cos'è andato storto. Riprova.");
+      onFail("Qualcosa è andato storto. Riprova.");
     } finally {
       setVerificando(false);
     }
@@ -241,14 +267,14 @@ export function EnigmaLevel({
       if (!res.ok) {
         onFail(
           data.errore === "nessun altro indizio"
-            ? "Il Custode non ha altro da suggerire."
-            : data.errore || "Il Custode non sa dirti cos'è andato storto."
+            ? "Non ci sono altri indizi."
+            : data.errore || "Qualcosa è andato storto. Riprova."
         );
         return;
       }
       setIndizi((prev) => (prev.some((i) => i.ordine === data.ordine) ? prev : [...prev, data]));
     } catch {
-      onFail("Il Custode non sa dirti cos'è andato storto. Riprova.");
+      onFail("Qualcosa è andato storto. Riprova.");
     } finally {
       setChiedendoIndizio(false);
     }
@@ -271,18 +297,16 @@ export function EnigmaLevel({
 
   if (stato === "carico") {
     return (
-      <>
-        <p className="kicker">L&apos;Enigma</p>
-        <p className="riddle">Il Custode sta preparando la prova…</p>
-      </>
+      <div className="caricamento" role="status" aria-label="Caricamento">
+        <div className="rotella" />
+      </div>
     );
   }
 
   if (stato === "errore") {
     return (
       <>
-        <p className="kicker">L&apos;Enigma</p>
-        <p className="riddle">L&apos;enigma tace, per ora. Riprova tra poco.</p>
+        <p className="riddle">Errore di caricamento. Riprova tra poco.</p>
         <button className="btn" onClick={() => caricaLivello(PRIMO_LIVELLO)}>
           Riprova
         </button>
@@ -294,7 +318,7 @@ export function EnigmaLevel({
     return (
       <>
         <p className="kicker">
-          Livello {enigma!.livello} — {enigma!.titolo}
+          Livello {romano(enigma!.livello)} — {enigma!.titolo}
         </p>
         <p className="riddle">Esatto.</p>
         <Door sceneRef={doorSceneRef} onComplete={avanza} />
@@ -324,13 +348,12 @@ export function EnigmaLevel({
     return (
       <>
         <p className="kicker">
-          Livello {enigma!.livello} — {enigma!.titolo}
+          Livello {romano(enigma!.livello)} — {enigma!.titolo}
         </p>
-        <p className="riddle">L&apos;acqua ti arriva al collo.</p>
         <Sottacqua
           sceneRef={sottacquaSceneRef}
-          giaDrenata={!idraulica.tappoInserito}
-          onTappoRimosso={() => aggiornaIdraulica({ tappoInserito: false })}
+          giaDrenata={!idr.tappoInserito}
+          onTappoRimosso={() => aggiornaIdraulica({ tappoInserito: false, acquaAlQuarto: false })}
           onSbloccato={() => setAcquaDrenata(true)}
         />
       </>
@@ -341,15 +364,37 @@ export function EnigmaLevel({
     return (
       <>
         <p className="kicker">
-          Livello {enigma!.livello} — {enigma!.titolo}
+          Livello {romano(enigma!.livello)} — {enigma!.titolo}
         </p>
-        <p className="riddle">L&apos;acqua drenata di sopra è colata fin qui.</p>
         <Pompa
           sceneRef={pompaSceneRef}
-          tappoInserito={idraulica.tappoInserito}
-          giaDrenata={idraulica.pompaAzionata}
-          onPompata={() => aggiornaIdraulica({ pompaAzionata: true })}
+          tappoInserito={idr.tappoInserito}
+          giaDrenata={idr.acquaAlQuarto}
+          onPompata={() => aggiornaIdraulica({ acquaAlQuarto: true })}
           onSbloccato={() => setAcquaDrenataPompa(true)}
+        />
+      </>
+    );
+  }
+
+  /* Il IV rivisitato: la stessa stanza, senza testi. Il tappo si
+     manovra da qui e lo stato resta salvato per il V. */
+  if (enigma!.livello === LIVELLO_ALLAGATO && enigma!.risolto) {
+    return (
+      <>
+        <p className="kicker">
+          Livello {romano(enigma!.livello)} — {enigma!.titolo}
+        </p>
+        <StanzaScarico
+          sceneRef={sottacquaSceneRef}
+          allagata={idr.acquaAlQuarto}
+          tappoInserito={idr.tappoInserito}
+          onTiraTappo={() => {
+            aggiornaIdraulica({ tappoInserito: false, acquaAlQuarto: false });
+            // se l'acqua riscende, il V torna allagato: il suo gate si riarma
+            setAcquaDrenataPompa(false);
+          }}
+          onRimettiTappo={() => aggiornaIdraulica({ tappoInserito: true })}
         />
       </>
     );
@@ -360,7 +405,7 @@ export function EnigmaLevel({
   return (
     <>
       <p className="kicker">
-        Livello {enigma!.livello} — {enigma!.titolo}
+        Livello {romano(enigma!.livello)} — {enigma!.titolo}
       </p>
       <p className="riddle" style={{ whiteSpace: "pre-line" }}>
         {enigma!.corpo}
@@ -383,21 +428,7 @@ export function EnigmaLevel({
       )}
 
       {enigma!.risolto ? (
-        <>
-          <p className="aside">Hai già risolto questo enigma.</p>
-          {enigma!.livello === LIVELLO_ALLAGATO && (
-            <Scarico
-              tappoInserito={idraulica.tappoInserito}
-              allagato={acquaAlQuarto}
-              onToggle={() => aggiornaIdraulica({ tappoInserito: !idraulica.tappoInserito })}
-            />
-          )}
-          {frontiera !== null && (
-            <button className="btnGhost" onClick={() => caricaLivello(frontiera)}>
-              Torna all&apos;enigma in corso
-            </button>
-          )}
-        </>
+        <p className="aside">Hai già risolto questo enigma.</p>
       ) : (
         <>
           <input
