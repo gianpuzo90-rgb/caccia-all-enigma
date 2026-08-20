@@ -352,6 +352,20 @@ export default function CacciaAllEnigma() {
             onCaricamento={setCaricamentoEnigma}
             onFrontiera={setFrontieraEnigmi}
             chiudiSipario={chiudiSipario}
+            onServeAccesso={() => {
+              // niente sessione (logout o scaduta): si torna alla porta
+              // del Patto, e la barra degli enigmi si spegne finché non
+              // si rientra. Il massimo locale resta: al login si riparte.
+              setLivelloEnigma(null);
+              setLivelloEnigmaMax(null);
+              setFrontieraEnigmi(null);
+              setRichiestaEnigma(null);
+              setFinestraEnigmi(null);
+              setLevel(3);
+              setNota("Accedi per riprendere la Caccia.");
+              setPulseAuth(true);
+              setTimeout(() => setPulseAuth(false), 900);
+            }}
           />
         );
     }

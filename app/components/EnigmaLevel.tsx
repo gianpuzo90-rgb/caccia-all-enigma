@@ -76,6 +76,9 @@ type EnigmaLevelProps = {
   /** Cala il sipario nero della shell (chiamato dalla coreografia del
       portale verso la fine dello zoom). */
   chiudiSipario?: () => void;
+  /** Il server risponde 401: niente sessione. La shell riporta alla
+      porta del Patto invece di lasciare un errore a schermo. */
+  onServeAccesso?: () => void;
 };
 
 type Stato = "carico" | "pronto" | "risolto" | "completato" | "errore";
@@ -93,6 +96,7 @@ export function EnigmaLevel({
   onCaricamento,
   onFrontiera,
   chiudiSipario,
+  onServeAccesso,
 }: EnigmaLevelProps) {
   const [stato, setStato] = useState<Stato>("carico");
   const [enigma, setEnigma] = useState<EnigmaDTO | null>(null);
@@ -166,6 +170,10 @@ export function EnigmaLevel({
         setStato("errore");
         return;
       }
+      if (res.status === 401) {
+        onServeAccesso?.();
+        return;
+      }
       if (res.status === 404) {
         segnaFrontiera(l);
         if (ultimoEsistente !== null) onLivelloMassimo?.(ultimoEsistente);
@@ -200,6 +208,10 @@ export function EnigmaLevel({
       res = await fetch(`/api/enigma/${livello}`, { cache: "no-store" });
     } catch {
       setStato("errore");
+      return;
+    }
+    if (res.status === 401) {
+      onServeAccesso?.();
       return;
     }
     if (!res.ok) {
@@ -262,6 +274,10 @@ export function EnigmaLevel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ livello: enigma.livello, risposta }),
       });
+      if (res.status === 401) {
+        onServeAccesso?.();
+        return;
+      }
       const data = await res.json();
       if (!res.ok) {
         onFail(data.errore || "Qualcosa è andato storto. Riprova.");
@@ -346,6 +362,10 @@ export function EnigmaLevel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ livello: enigma.livello, risposta: "" }),
       });
+      if (res.status === 401) {
+        onServeAccesso?.();
+        return;
+      }
       const data = await res.json();
       if (!res.ok || !data.corretto) {
         onFail(data.errore || "Qualcosa è andato storto. Riprova.");
