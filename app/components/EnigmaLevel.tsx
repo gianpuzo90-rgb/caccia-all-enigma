@@ -16,7 +16,7 @@ import {
   LIVELLO_BUIO,
   LIVELLO_POMPA,
   leggiLocale,
-  romano,
+  didascaliaLivello,
   scriviLocale,
 } from "./utils";
 
@@ -56,7 +56,9 @@ type EnigmaLevelProps = {
   mioNick?: string;
   onFail: (msg: string) => void;
   onClearError: () => void;
-  onRestart: () => void;
+  /** Titolo del livello mostrato: la shell lo scrive sotto la carta,
+      così resta leggibile anche quando la stanza è tutta nera. */
+  onDidascalia?: (testo: string | null) => void;
   /** Livello attualmente mostrato, per la barra cliccabile del genitore. */
   onCambioLivello?: (livello: number) => void;
   /** Il livello più alto che la barra deve offrire, quando non coincide
@@ -89,7 +91,7 @@ export function EnigmaLevel({
   mioNick,
   onFail,
   onClearError,
-  onRestart,
+  onDidascalia,
   onCambioLivello,
   onLivelloMassimo,
   richiesta,
@@ -262,6 +264,19 @@ export function EnigmaLevel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caricando]);
 
+  /* Il titolo del livello vive sotto la carta, scritto dalla shell. */
+  const didascalia =
+    stato === "completato"
+      ? "Il Patto è sigillato"
+      : enigma && (stato === "pronto" || stato === "risolto")
+        ? didascaliaLivello(enigma.livello, enigma.titolo)
+        : null;
+  useEffect(() => {
+    onDidascalia?.(didascalia);
+    return () => onDidascalia?.(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [didascalia]);
+
   const invia = async () => {
     if (!enigma || verificando) return;
     onClearError();
@@ -428,9 +443,6 @@ export function EnigmaLevel({
     if (stato === "risolto") {
       return (
         <>
-          <p className="kicker">
-            Livello {romano(enigma!.livello)} — {enigma!.titolo}
-          </p>
           <p className="riddle">Esatto.</p>
           <Door sceneRef={doorSceneRef} onComplete={avanza} />
         </>
@@ -440,16 +452,12 @@ export function EnigmaLevel({
     if (stato === "completato") {
       return (
         <>
-          <p className="kicker">Il Patto è sigillato</p>
           <p className="riddle">
             Benvenuto tra i Cercatori, <strong>{mioNick || "Tu"}</strong>. Hai risolto tutti gli
             enigmi disponibili: la Caccia, da qui, è appena cominciata.
           </p>
           <Classifica mioNick={mioNick} />
           <p className="aside">I prossimi enigmi sono in scrittura.</p>
-          <button className="btn" onClick={onRestart}>
-            Ricomincia la caccia
-          </button>
         </>
       );
     }
@@ -457,9 +465,6 @@ export function EnigmaLevel({
     if (enigma!.livello === LIVELLO_ALLAGATO && !enigma!.risolto && !acquaDrenata) {
       return (
         <>
-          <p className="kicker">
-            Livello {romano(enigma!.livello)} — {enigma!.titolo}
-          </p>
           <Sottacqua
             sceneRef={doorSceneRef}
             giaDrenata={!idr.tappoInserito}
@@ -493,9 +498,6 @@ export function EnigmaLevel({
     if (enigma!.livello === LIVELLO_POMPA && !enigma!.risolto && !acquaDrenataPompa) {
       return (
         <>
-          <p className="kicker">
-            Livello {romano(enigma!.livello)} — {enigma!.titolo}
-          </p>
           <Pompa
             key={tentativoScena}
             sceneRef={doorSceneRef}
@@ -515,9 +517,6 @@ export function EnigmaLevel({
     if (enigma!.livello === LIVELLO_ALLAGATO && enigma!.risolto) {
       return (
         <>
-          <p className="kicker">
-            Livello {romano(enigma!.livello)} — {enigma!.titolo}
-          </p>
           <StanzaScarico
             sceneRef={doorSceneRef}
             allagata={idr.acquaAlQuarto}
@@ -540,9 +539,6 @@ export function EnigmaLevel({
     if (enigma!.livello === LIVELLO_POMPA && enigma!.risolto) {
       return (
         <>
-          <p className="kicker">
-            Livello {romano(enigma!.livello)} — {enigma!.titolo}
-          </p>
           <Pompa
             key={`rivisita-${idr.acquaAlQuarto}`}
             sceneRef={doorSceneRef}
@@ -562,9 +558,6 @@ export function EnigmaLevel({
     if (enigma!.scena) {
       return (
         <>
-          <p className="kicker">
-            Livello {romano(enigma!.livello)} — {enigma!.titolo}
-          </p>
           {enigma!.corpo && (
             <p className="riddle" style={{ whiteSpace: "pre-line" }}>
               {enigma!.corpo}
@@ -587,9 +580,6 @@ export function EnigmaLevel({
 
     return (
       <>
-        <p className="kicker">
-          Livello {romano(enigma!.livello)} — {enigma!.titolo}
-        </p>
         <p className="riddle" style={{ whiteSpace: "pre-line" }}>
           {enigma!.corpo}
         </p>

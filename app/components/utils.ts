@@ -16,25 +16,17 @@ export const forzaPassword = (p: string): number => {
 
 /* ------------------------------ grafica ------------------------------ */
 
-export const ROMANS = ["I", "II", "III"];
+/* I titoli dei tre livelli di onboarding: gli altri arrivano dal server. */
+export const TITOLI_ONBOARDING = ["Ingresso", "I Biscotti", "Il Patto"];
 
-/* Livelli con una scena speciale: servono sia a EnigmaLevel sia alla
-   shell (es. per spegnere il sigillo quando lo schermo è tutto nero). */
+/* Livelli con una scena speciale, condivisi fra EnigmaLevel e la shell. */
 export const LIVELLO_ALLAGATO = 4;
 export const LIVELLO_BUIO = 5;
 export const LIVELLO_POMPA = 6;
 
-/* La barra dei livelli è tutta in numeri romani, onboarding ed enigmi. */
-export function romano(n: number): string {
-  const tavola: Array<[number, string]> = [
-    [1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"],
-    [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"],
-  ];
-  let resto = n;
-  let s = "";
-  for (const [v, r] of tavola) while (resto >= v) { s += r; resto -= v; }
-  return s;
-}
+/** La didascalia sotto la carta. Numeri arabi, come nella barra. */
+export const didascaliaLivello = (livello: number, titolo: string) =>
+  `Livello ${livello} — ${titolo}`;
 export const ARCH = "M50 300 L50 132 Q50 70 120 70 Q190 70 190 132 L190 300 Z";
 
 /* ------------------------------ storage ------------------------------ */

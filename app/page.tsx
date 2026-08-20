@@ -13,7 +13,14 @@ import { CookiePreferencesPage } from "./components/CookiePreferencesPage";
 import { EnigmaLevel } from "./components/EnigmaLevel";
 import { UserGlyph } from "./components/icons";
 import { usePortale } from "./components/usePortale";
-import { K, LIVELLO_BUIO, ROMANS, leggiLocale, rimuoviLocale, romano, scriviLocale } from "./components/utils";
+import {
+  K,
+  TITOLI_ONBOARDING,
+  didascaliaLivello,
+  leggiLocale,
+  rimuoviLocale,
+  scriviLocale,
+} from "./components/utils";
 import type { Consenso, Sessione, View } from "./components/types";
 
 /* ==================================================================
@@ -70,6 +77,8 @@ export default function CacciaAllEnigma() {
   // il nero resta giù un minimo, per leggersi come buio e non sfarfallio
   const [attesaMinima, setAttesaMinima] = useState(false);
   const [caricamentoEnigma, setCaricamentoEnigma] = useState(false);
+  // il titolo del livello mostrato da EnigmaLevel, scritto sotto la carta
+  const [didascaliaEnigma, setDidascaliaEnigma] = useState<string | null>(null);
   const chiudiSipario = () => {
     setSipario("chiuso");
     setAttesaMinima(true);
@@ -258,21 +267,6 @@ export default function CacciaAllEnigma() {
     setNota("Preferenze azzerate: ti verranno richieste di nuovo.");
   };
 
-  const resetAll = () => {
-    setError("");
-    conSipario(() => {
-      setLevel(1);
-      setView("game");
-      setLivelloEnigma(null);
-      setLivelloEnigmaMax(null);
-      setRichiestaEnigma(null);
-      setFinestraEnigmi(null);
-      setFrontieraEnigmi(null);
-      setMassimoLivello(1);
-      scriviLocale(K.progresso, { level: 1 });
-    });
-  };
-
   /* --------------------------- livelli --------------------------- */
 
   const renderLevel = () => {
@@ -280,7 +274,6 @@ export default function CacciaAllEnigma() {
       case 1:
         return (
           <>
-            <p className="kicker">Livello I — Ingresso</p>
             <Door sceneRef={doorSceneRef} onComplete={() => openPortal(2, true)} />
           </>
         );
@@ -288,7 +281,6 @@ export default function CacciaAllEnigma() {
       case 2:
         return (
           <>
-            <p className="kicker">Livello II — I Biscotti</p>
             <Door
               sceneRef={doorSceneRef}
               variant="biscotto"
@@ -306,7 +298,6 @@ export default function CacciaAllEnigma() {
       case 3:
         return (
           <>
-            <p className="kicker">Livello III — Il Patto</p>
             <Door
               sceneRef={doorSceneRef}
               variant="serratura"
@@ -332,7 +323,7 @@ export default function CacciaAllEnigma() {
             mioNick={sessione?.nick}
             onFail={fail}
             onClearError={clearError}
-            onRestart={resetAll}
+            onDidascalia={setDidascaliaEnigma}
             onCambioLivello={(l) => {
               setLivelloEnigma(l);
               // Solo un avanzamento vero (non una rivisita all'indietro
@@ -414,12 +405,14 @@ export default function CacciaAllEnigma() {
     return renderLevel();
   };
 
-  const sigillo = () => {
-    if (view === "auth" || view === "account") return <UserGlyph size={20} />;
-    if (view === "privacy" || view === "cookie") return "§";
-    if (level <= 3) return ROMANS[level - 1];
-    return livelloEnigma !== null ? romano(livelloEnigma) : "✓";
-  };
+  /* La didascalia sotto la carta: per l'onboarding la sappiamo qui, per
+     gli enigmi la riporta EnigmaLevel. Nelle altre viste non c'è. */
+  const didascalia =
+    view !== "game"
+      ? null
+      : level <= 3
+        ? didascaliaLivello(level, TITOLI_ONBOARDING[level - 1])
+        : didascaliaEnigma;
 
   if (!pronto) return <div className="night" />;
 
@@ -441,7 +434,7 @@ export default function CacciaAllEnigma() {
       <header className="top">
         <h1 className="wordmark">Caccia all&apos;Enigma</h1>
         <div className="progress" aria-label="Livelli">
-          {ROMANS.map((_, i) => {
+          {TITOLI_ONBOARDING.map((_, i) => {
             const n = i + 1;
             // "fatto" = completato almeno una volta (il massimo raggiunto
             // non regredisce); "now" solo se è il livello che stai vedendo
@@ -502,11 +495,6 @@ export default function CacciaAllEnigma() {
             </button>
           )}
         </div>
-        {level > 1 && view === "game" && (
-          <button className="resetBtn" onClick={resetAll}>
-            ↺ ricomincia
-          </button>
-        )}
       </header>
 
       <main className="stage">
@@ -515,14 +503,12 @@ export default function CacciaAllEnigma() {
           className={"card in" + (shake ? " shake" : "")}
           onAnimationEnd={() => setShake(false)}
         >
-          {!(view === "game" && level > 3 && livelloEnigma === LIVELLO_BUIO) && (
-            <div className="seal">{sigillo()}</div>
-          )}
           {contenuto()}
           {error && <p className="error">{error}</p>}
           {nota && <p className="nota">{nota}</p>}
           {portal && view === "game" && <div className="cardBuio" aria-hidden="true" />}
         </div>
+        {didascalia && <p className="didascalia">{didascalia}</p>}
       </main>
 
       <footer className="foot">

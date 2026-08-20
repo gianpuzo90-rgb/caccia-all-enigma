@@ -129,9 +129,12 @@ del web diventa gioco. Restano client-side perché non contengono segreti.
   (tappo inserito, acqua al IV) sono in localStorage sotto
   `cae:idraulica`; quando mancano si deducono dai progressi server,
   quindi il gioco regge al cambio di dispositivo.
-- Le scene si presentano senza testi introduttivi. La navigazione fra
-  i livelli già raggiunti è libera dalla barra in alto (numeri arabi;
-  i romani restano su sigillo e kicker). Un livello risolto si può
+- Le scene si presentano senza testi introduttivi: il titolo del
+  livello ("Livello 5 — Al Buio") sta **sotto** la carta, come la
+  targhetta di un quadro, così resta leggibile anche quando la stanza
+  è tutta nera. I numeri di livello sono arabi ovunque, barra compresa.
+  La navigazione fra i livelli già raggiunti è libera dalla barra in
+  alto. Un livello risolto si può
   anche "ririsolvere" — pomello, catenella, pompa, alle stesse
   condizioni della scena — per riattraversare la porta verso il
   successivo. Dopo ogni passaggio la porta si chiude alle spalle:
@@ -149,9 +152,11 @@ Regole di design emerse strada facendo:
 ### Estetica
 
 Notte d'inchiostro (`#12141d`) illuminata da lanterna (`#e8a33d`). Ogni
-schermata è una carta di carta invecchiata (`#f2ead8`) con sigillo di
-ceralacca (`#a63d2f`), leggermente ruotata. Font: IM Fell English per i
-titoli, Spectral per il testo, IBM Plex Mono per l'interfaccia.
+schermata è una carta di carta invecchiata (`#f2ead8`), leggermente
+ruotata. Niente sigillo di ceralacca sull'angolo: è stato rimosso di
+proposito, la carta resta pulita (il colore `#a63d2f` sopravvive negli
+accenti). Font: IM Fell English per i titoli, Spectral per il testo,
+IBM Plex Mono per l'interfaccia.
 Niente voce narrante: i testi di servizio sono asciutti e diretti
 (il Custode è stato rimosso di proposito, non reintrodurlo). I
 caricamenti mostrano una rotellina generica, non frasi d'atmosfera.
