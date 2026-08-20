@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { EnigmaDTO, IndizioOk } from "./types";
 import { Classifica } from "./Classifica";
@@ -18,9 +18,9 @@ import { K, leggiLocale, romano, scriviLocale } from "./utils";
    è trovarlo a memoria. L'acqua del IV intanto è colata fino al VI,
    dove la pompa la rimanda su, ma tiene solo se il tappo del IV è
    tornato al suo posto — altrimenti rifluisce dallo stesso scarico.
-   Rivisitando il IV si ritrova la stanza stessa, di norma asciutta,
-   col tappo manovrabile; se la pompa ha lavorato, di nuovo allagata.
-   L'acqua o è al IV o è al VI, mai altrove. */
+   Rivisitando un livello risolto se ne ritrova la scena: alle stesse
+   condizioni (stanza asciutta, buio superabile) si può rigirare il
+   pomello e passare al successivo. L'acqua o è al IV o è al VI. */
 const LIVELLO_ALLAGATO = 4;
 const LIVELLO_BUIO = 5;
 const LIVELLO_POMPA = 6;
@@ -31,7 +31,7 @@ const LIVELLO_POMPA = 6;
 const PRIMO_LIVELLO = 4;
 const LIMITE_RICERCA = 200;
 
-/* Lo stato idraulico condiviso fra IV e V, persistito in localStorage:
+/* Lo stato idraulico condiviso fra IV e VI, persistito in localStorage:
    due bit veri (dov'è il tappo, dov'è l'acqua). Quando mancano — primo
    avvio o altro dispositivo — si deducono dai progressi server. */
 type Idraulica = { tappoInserito: boolean; acquaAlQuarto: boolean };
@@ -89,12 +89,10 @@ export function EnigmaLevel({
   const [acquaDrenata, setAcquaDrenata] = useState(false);
   const [acquaDrenataPompa, setAcquaDrenataPompa] = useState(false);
   const [idraulica, setIdraulica] = useState<Idraulica | null>(() => leggiIdraulica());
-  const sottacquaSceneRef = useRef<HTMLDivElement | null>(null);
-  const pompaSceneRef = useRef<HTMLDivElement | null>(null);
 
   /* Il livello più basso non ancora risolto (o il primo oltre l'ultimo
-     enigma esistente): serve al "torna all'enigma in corso" e a dedurre
-     lo stato idraulico quando i bit locali mancano. */
+     enigma esistente): guida la navigazione in avanti e la deduzione
+     dello stato idraulico quando i bit locali mancano. */
   const [frontiera, setFrontiera] = useState<number | null>(null);
 
   /* Finché i bit non sono noti si assume lo stato di partenza. */
@@ -107,8 +105,8 @@ export function EnigmaLevel({
   };
 
   /* Bit assenti (primo avvio o cambio di dispositivo): si deducono dai
-     progressi. Oltre il V l'acqua è per forza tornata su, col tappo
-     dentro; fermi al V l'acqua è di sotto, tappo fuori com'è rimasto. */
+     progressi. Oltre il VI l'acqua è per forza tornata su, col tappo
+     dentro; fermi al V o al VI l'acqua è di sotto, tappo com'è rimasto. */
   useEffect(() => {
     if (idraulica !== null || frontiera === null) return;
     const dedotta: Idraulica =
@@ -122,7 +120,7 @@ export function EnigmaLevel({
     scriviLocale(K.idraulica, dedotta);
   }, [frontiera, idraulica]);
 
-  const { sceneRef: doorSceneRef, portale, apri: apriPortale } = usePortale();
+  const { sceneRef: doorSceneRef, portale, velo, apri: apriPortale } = usePortale();
 
   /* Il server sa qual è il livello sbloccato: si parte dal primo e si
      avanza finché non se ne trova uno non ancora risolto, o si scopre
@@ -169,8 +167,7 @@ export function EnigmaLevel({
   };
 
   /* Salto diretto a un livello già raggiunto (click sulla barra): un
-     solo fetch, nessuna ricerca. Mostra anche gli enigmi già risolti,
-     in sola lettura. */
+     solo fetch, nessuna ricerca. Mostra anche gli enigmi già risolti. */
   const mostraLivello = async (livello: number) => {
     setStato("carico");
     setIndizi([]);
@@ -190,6 +187,14 @@ export function EnigmaLevel({
     setEnigma(data);
     setStato("pronto");
     onCambioLivello?.(data.livello);
+  };
+
+  /* Da un livello risolto si può riattraversare la porta: al successivo
+     se è già noto, o dritti all'enigma in corso / al finale. */
+  const avanzaDaRivisita = (livello: number) => {
+    const succ = livello + 1;
+    if (frontiera !== null && succ < frontiera) mostraLivello(succ);
+    else caricaLivello(succ);
   };
 
   useEffect(() => {
@@ -324,182 +329,228 @@ export function EnigmaLevel({
     }
   };
 
-  /* Il portale deve uscire dal .card (che ha un transform: rotate,
-     quindi crea un containing block per gli elementi position:fixed)
-     per coprire davvero tutto lo schermo, come nei livelli 1-3. */
-  const portaleOverlay =
-    portale && typeof document !== "undefined"
+  /* Portale e velo devono restare montati qualunque vista sia attiva:
+     l'overlay copre lo scambio di contenuto. Escono dal .card (che ha
+     un transform e farebbe da containing block ai position:fixed) via
+     createPortal, come nei livelli 1-3. */
+  const overlay =
+    (portale || velo) && typeof document !== "undefined"
       ? createPortal(
-          <Portal rect={portale} lit={portale.lit} leafOpen={portale.leafOpen} zoom={portale.zoom} />,
+          <>
+            {portale && (
+              <Portal rect={portale} lit={portale.lit} leafOpen={portale.leafOpen} zoom={portale.zoom} />
+            )}
+            {velo && <div className="velo" aria-hidden="true" />}
+          </>,
           document.body
         )
       : null;
 
-  if (stato === "carico") {
-    return (
-      <div className="caricamento" role="status" aria-label="Caricamento">
-        <div className="rotella" />
-      </div>
-    );
-  }
-
-  if (stato === "errore") {
-    return (
-      <>
-        <p className="riddle">Errore di caricamento. Riprova tra poco.</p>
-        <button className="btn" onClick={() => caricaLivello(PRIMO_LIVELLO)}>
-          Riprova
-        </button>
-      </>
-    );
-  }
-
-  if (stato === "risolto") {
-    return (
-      <>
-        <p className="kicker">
-          Livello {romano(enigma!.livello)} — {enigma!.titolo}
-        </p>
-        <p className="riddle">Esatto.</p>
-        <Door sceneRef={doorSceneRef} onComplete={avanza} />
-        {portaleOverlay}
-      </>
-    );
-  }
-
-  if (stato === "completato") {
-    return (
-      <>
-        <p className="kicker">Il Patto è sigillato</p>
-        <p className="riddle">
-          Benvenuto tra i Cercatori, <strong>{mioNick || "Tu"}</strong>. Hai risolto tutti gli
-          enigmi disponibili: la Caccia, da qui, è appena cominciata.
-        </p>
-        <Classifica mioNick={mioNick} />
-        <p className="aside">I prossimi enigmi sono in scrittura.</p>
-        <button className="btn" onClick={onRestart}>
-          Ricomincia la caccia
-        </button>
-      </>
-    );
-  }
-
-  if (enigma!.livello === LIVELLO_ALLAGATO && !enigma!.risolto && !acquaDrenata) {
-    return (
-      <>
-        <p className="kicker">
-          Livello {romano(enigma!.livello)} — {enigma!.titolo}
-        </p>
-        <Sottacqua
-          sceneRef={sottacquaSceneRef}
-          giaDrenata={!idr.tappoInserito}
-          onTappoRimosso={() => aggiornaIdraulica({ tappoInserito: false, acquaAlQuarto: false })}
-          onSbloccato={() => setAcquaDrenata(true)}
-        />
-      </>
-    );
-  }
-
-  /* Al Buio: nessun testo, nessuna porta visibile. Solo nero, e il
-     pomello che funziona dove è sempre stato. */
-  if (enigma!.livello === LIVELLO_BUIO && !enigma!.risolto) {
-    return (
-      <>
-        <div className="buio">
-          <Door key={tentativoBuio} sceneRef={doorSceneRef} variant="buio" onComplete={completaBuio} />
+  const vista = () => {
+    if (stato === "carico") {
+      return (
+        <div className="caricamento" role="status" aria-label="Caricamento">
+          <div className="rotella" />
         </div>
-        {portaleOverlay}
-      </>
-    );
-  }
+      );
+    }
 
-  if (enigma!.livello === LIVELLO_POMPA && !enigma!.risolto && !acquaDrenataPompa) {
+    if (stato === "errore") {
+      return (
+        <>
+          <p className="riddle">Errore di caricamento. Riprova tra poco.</p>
+          <button className="btn" onClick={() => caricaLivello(PRIMO_LIVELLO)}>
+            Riprova
+          </button>
+        </>
+      );
+    }
+
+    if (stato === "risolto") {
+      return (
+        <>
+          <p className="kicker">
+            Livello {romano(enigma!.livello)} — {enigma!.titolo}
+          </p>
+          <p className="riddle">Esatto.</p>
+          <Door sceneRef={doorSceneRef} onComplete={avanza} />
+        </>
+      );
+    }
+
+    if (stato === "completato") {
+      return (
+        <>
+          <p className="kicker">Il Patto è sigillato</p>
+          <p className="riddle">
+            Benvenuto tra i Cercatori, <strong>{mioNick || "Tu"}</strong>. Hai risolto tutti gli
+            enigmi disponibili: la Caccia, da qui, è appena cominciata.
+          </p>
+          <Classifica mioNick={mioNick} />
+          <p className="aside">I prossimi enigmi sono in scrittura.</p>
+          <button className="btn" onClick={onRestart}>
+            Ricomincia la caccia
+          </button>
+        </>
+      );
+    }
+
+    if (enigma!.livello === LIVELLO_ALLAGATO && !enigma!.risolto && !acquaDrenata) {
+      return (
+        <>
+          <p className="kicker">
+            Livello {romano(enigma!.livello)} — {enigma!.titolo}
+          </p>
+          <Sottacqua
+            sceneRef={doorSceneRef}
+            giaDrenata={!idr.tappoInserito}
+            onTappoRimosso={() => aggiornaIdraulica({ tappoInserito: false, acquaAlQuarto: false })}
+            onSbloccato={() => setAcquaDrenata(true)}
+          />
+        </>
+      );
+    }
+
+    /* Al Buio, sempre: nessun testo, nessuna porta visibile, il pomello
+       dove è sempre stato. La prima volta il completamento passa dal
+       server; nelle rivisite girare il pomello riapre la porta e basta. */
+    if (enigma!.livello === LIVELLO_BUIO) {
+      return (
+        <div className="buio">
+          <Door
+            key={tentativoBuio}
+            sceneRef={doorSceneRef}
+            variant="buio"
+            onComplete={
+              enigma!.risolto
+                ? () => apriPortale(() => avanzaDaRivisita(LIVELLO_BUIO))
+                : completaBuio
+            }
+          />
+        </div>
+      );
+    }
+
+    if (enigma!.livello === LIVELLO_POMPA && !enigma!.risolto && !acquaDrenataPompa) {
+      return (
+        <>
+          <p className="kicker">
+            Livello {romano(enigma!.livello)} — {enigma!.titolo}
+          </p>
+          <Pompa
+            sceneRef={doorSceneRef}
+            tappoInserito={idr.tappoInserito}
+            giaDrenata={idr.acquaAlQuarto}
+            onPompata={() => aggiornaIdraulica({ acquaAlQuarto: true })}
+            onSbloccato={() => setAcquaDrenataPompa(true)}
+          />
+        </>
+      );
+    }
+
+    /* Il IV rivisitato: la stessa stanza. Il tappo si manovra da qui e
+       lo stato resta; a stanza asciutta il pomello riporta al V. */
+    if (enigma!.livello === LIVELLO_ALLAGATO && enigma!.risolto) {
+      return (
+        <>
+          <p className="kicker">
+            Livello {romano(enigma!.livello)} — {enigma!.titolo}
+          </p>
+          <StanzaScarico
+            sceneRef={doorSceneRef}
+            allagata={idr.acquaAlQuarto}
+            tappoInserito={idr.tappoInserito}
+            onTiraTappo={() => {
+              aggiornaIdraulica({ tappoInserito: false, acquaAlQuarto: false });
+              // se l'acqua riscende, il VI torna allagato: il suo gate si riarma
+              setAcquaDrenataPompa(false);
+            }}
+            onRimettiTappo={() => aggiornaIdraulica({ tappoInserito: true })}
+            onAvanti={() => apriPortale(() => avanzaDaRivisita(LIVELLO_ALLAGATO))}
+          />
+        </>
+      );
+    }
+
+    /* Il VI rivisitato: la stanza della pompa, alle sue condizioni.
+       Con l'acqua su il pomello è libero e riapre la porta; con
+       l'acqua giù bisogna rifare il giro di pompa e tappo. */
+    if (enigma!.livello === LIVELLO_POMPA && enigma!.risolto) {
+      return (
+        <>
+          <p className="kicker">
+            Livello {romano(enigma!.livello)} — {enigma!.titolo}
+          </p>
+          <Pompa
+            key={`rivisita-${idr.acquaAlQuarto}`}
+            sceneRef={doorSceneRef}
+            tappoInserito={idr.tappoInserito}
+            giaDrenata={idr.acquaAlQuarto}
+            onPompata={() => aggiornaIdraulica({ acquaAlQuarto: true })}
+            onSbloccato={() => apriPortale(() => avanzaDaRivisita(LIVELLO_POMPA))}
+          />
+        </>
+      );
+    }
+
+    const puoIndizio = enigma!.indizi_usati < enigma!.indizi_totali;
+
     return (
       <>
         <p className="kicker">
           Livello {romano(enigma!.livello)} — {enigma!.titolo}
         </p>
-        <Pompa
-          sceneRef={pompaSceneRef}
-          tappoInserito={idr.tappoInserito}
-          giaDrenata={idr.acquaAlQuarto}
-          onPompata={() => aggiornaIdraulica({ acquaAlQuarto: true })}
-          onSbloccato={() => setAcquaDrenataPompa(true)}
-        />
-      </>
-    );
-  }
-
-  /* Il IV rivisitato: la stessa stanza, senza testi. Il tappo si
-     manovra da qui e lo stato resta salvato per il V. */
-  if (enigma!.livello === LIVELLO_ALLAGATO && enigma!.risolto) {
-    return (
-      <>
-        <p className="kicker">
-          Livello {romano(enigma!.livello)} — {enigma!.titolo}
+        <p className="riddle" style={{ whiteSpace: "pre-line" }}>
+          {enigma!.corpo}
         </p>
-        <StanzaScarico
-          sceneRef={sottacquaSceneRef}
-          allagata={idr.acquaAlQuarto}
-          tappoInserito={idr.tappoInserito}
-          onTiraTappo={() => {
-            aggiornaIdraulica({ tappoInserito: false, acquaAlQuarto: false });
-            // se l'acqua riscende, il V torna allagato: il suo gate si riarma
-            setAcquaDrenataPompa(false);
-          }}
-          onRimettiTappo={() => aggiornaIdraulica({ tappoInserito: true })}
-        />
+        {enigma!.media && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={enigma!.media} alt="" style={{ width: "100%", borderRadius: 4, marginBottom: 16 }} />
+        )}
+
+        {indizi.length > 0 && (
+          <div className="fineprint">
+            {[...indizi]
+              .sort((a, b) => a.ordine - b.ordine)
+              .map((i) => (
+                <p key={i.ordine}>
+                  <strong>Indizio {i.ordine}.</strong> {i.testo}
+                </p>
+              ))}
+          </div>
+        )}
+
+        {enigma!.risolto ? (
+          <>
+            <p className="aside">Hai già risolto questo enigma: la porta è aperta.</p>
+            <Door sceneRef={doorSceneRef} onComplete={() => apriPortale(() => avanzaDaRivisita(enigma!.livello))} />
+          </>
+        ) : (
+          <>
+            <input
+              className="field"
+              placeholder="La tua risposta"
+              value={risposta}
+              onChange={(e) => setRisposta(e.target.value)}
+              onKeyDown={onEnter}
+            />
+
+            <button className="btn" onClick={invia} disabled={verificando}>
+              {verificando ? "Un istante…" : "Consegna la risposta"}
+            </button>
+            <button className="btnGhost" onClick={chiediIndizio} disabled={chiedendoIndizio || !puoIndizio}>
+              {chiedendoIndizio ? "Un istante…" : puoIndizio ? "Chiedi un indizio" : "Nessun altro indizio"}
+            </button>
+          </>
+        )}
       </>
     );
-  }
-
-  const puoIndizio = enigma!.indizi_usati < enigma!.indizi_totali;
+  };
 
   return (
     <>
-      <p className="kicker">
-        Livello {romano(enigma!.livello)} — {enigma!.titolo}
-      </p>
-      <p className="riddle" style={{ whiteSpace: "pre-line" }}>
-        {enigma!.corpo}
-      </p>
-      {enigma!.media && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={enigma!.media} alt="" style={{ width: "100%", borderRadius: 4, marginBottom: 16 }} />
-      )}
-
-      {indizi.length > 0 && (
-        <div className="fineprint">
-          {[...indizi]
-            .sort((a, b) => a.ordine - b.ordine)
-            .map((i) => (
-              <p key={i.ordine}>
-                <strong>Indizio {i.ordine}.</strong> {i.testo}
-              </p>
-            ))}
-        </div>
-      )}
-
-      {enigma!.risolto ? (
-        <p className="aside">Hai già risolto questo enigma.</p>
-      ) : (
-        <>
-          <input
-            className="field"
-            placeholder="La tua risposta"
-            value={risposta}
-            onChange={(e) => setRisposta(e.target.value)}
-            onKeyDown={onEnter}
-          />
-
-          <button className="btn" onClick={invia} disabled={verificando}>
-            {verificando ? "Un istante…" : "Consegna la risposta"}
-          </button>
-          <button className="btnGhost" onClick={chiediIndizio} disabled={chiedendoIndizio || !puoIndizio}>
-            {chiedendoIndizio ? "Un istante…" : puoIndizio ? "Chiedi un indizio" : "Nessun altro indizio"}
-          </button>
-        </>
-      )}
+      {vista()}
+      {overlay}
     </>
   );
 }

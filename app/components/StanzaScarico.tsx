@@ -8,9 +8,12 @@ type StanzaScaricoProps = {
   /** L'acqua in questo momento è qui al IV (la pompa del V l'ha rimandata su). */
   allagata: boolean;
   tappoInserito: boolean;
-  /** Catenella tirata: il tappo esce e, se c'è acqua, defluisce al V. */
+  /** Catenella tirata: il tappo esce e, se c'è acqua, defluisce di sotto. */
   onTiraTappo: () => void;
   onRimettiTappo: () => void;
+  /** Pomello girato di nuovo (possibile solo a stanza asciutta):
+      si riattraversa la porta verso il livello successivo. */
+  onAvanti: () => void;
 };
 
 /* Il livello IV rivisitato a enigma risolto: la stessa stanza, di norma
@@ -23,15 +26,16 @@ export function StanzaScarico({
   tappoInserito,
   onTiraTappo,
   onRimettiTappo,
+  onAvanti,
 }: StanzaScaricoProps) {
   return (
     <div className={"sottacqua" + (allagata ? "" : " tirata")}>
       <Door
         sceneRef={sceneRef}
         variant="scarico"
-        inert
-        inertLabel="La porta è già aperta"
-        onComplete={() => {}}
+        inert={allagata}
+        inertLabel="Pomello bloccato: l'acqua è ancora alta"
+        onComplete={onAvanti}
       />
 
       <div className="acqua" aria-hidden="true">

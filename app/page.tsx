@@ -63,7 +63,7 @@ export default function CacciaAllEnigma() {
   const [sessione, setSessione] = useState<Sessione | null>(null);
 
   const [view, setView] = useState<View>("game");
-  const { sceneRef: doorSceneRef, portale: portal, apri: apriPortale } = usePortale();
+  const { sceneRef: doorSceneRef, portale: portal, velo, apri: apriPortale } = usePortale();
   const barRef = useRef<HTMLDivElement | null>(null);
   const [barH, setBarH] = useState(0);
 
@@ -343,18 +343,18 @@ export default function CacciaAllEnigma() {
       <header className="top">
         <h1 className="wordmark">Caccia all&apos;Enigma</h1>
         <div className="progress" aria-label="Livelli">
-          {ROMANS.map((r, i) => {
+          {ROMANS.map((_, i) => {
             const n = i + 1;
             const cliccabile = level <= 3 && n <= level;
             return (
               <button
-                key={r}
+                key={n}
                 type="button"
                 className={"step" + (n < level ? " done" : "") + (n === level ? " now" : "")}
                 disabled={!cliccabile}
                 onClick={() => vaiALivelloOnboarding(n)}
               >
-                {r}
+                {n}
               </button>
             );
           })}
@@ -384,7 +384,7 @@ export default function CacciaAllEnigma() {
                   aria-current={n === livelloEnigma ? "step" : undefined}
                   onClick={() => vaiALivelloEnigma(n)}
                 >
-                  {romano(n)}
+                  {n}
                 </button>
               )
             )}
@@ -431,6 +431,7 @@ export default function CacciaAllEnigma() {
       </footer>
 
       {portal && <Portal rect={portal} lit={portal.lit} leafOpen={portal.leafOpen} zoom={portal.zoom} />}
+      {velo && <div className="velo" aria-hidden="true" />}
 
       {consenso === null && (
         <CookieBanner

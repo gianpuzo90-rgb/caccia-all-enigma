@@ -122,9 +122,13 @@ del web diventa gioco. Restano client-side perché non contengono segreti.
   (tappo inserito, acqua al IV) sono in localStorage sotto
   `cae:idraulica`; quando mancano si deducono dai progressi server,
   quindi il gioco regge al cambio di dispositivo.
-- Le scene si presentano senza testi introduttivi, e la navigazione
-  fra i livelli già raggiunti è libera dalla barra in alto, tutta in
-  numeri romani.
+- Le scene si presentano senza testi introduttivi. La navigazione fra
+  i livelli già raggiunti è libera dalla barra in alto (numeri arabi;
+  i romani restano su sigillo e kicker). Un livello risolto si può
+  anche "ririsolvere" — pomello, catenella, pompa, alle stesse
+  condizioni della scena — per riattraversare la porta verso il
+  successivo. Dopo ogni passaggio la porta si chiude alle spalle:
+  buio pieno e dissolvenza sulla stanza nuova.
 
 Regole di design emerse strada facendo:
 - Nessuna istruzione scritta: il gioco si spiega con il comportamento degli

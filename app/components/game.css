@@ -177,6 +177,8 @@
   padding: 59px 0 26px;
   overflow: hidden;
 }
+/* tanto non si vede: al buio la presa è molto più generosa */
+.buio .doorKnob { width: 140px; height: 140px; }
 
 /* rotellina di caricamento generica */
 .caricamento { min-height: 240px; display: flex; align-items: center; justify-content: center; }
@@ -187,7 +189,7 @@
 }
 @keyframes rotella { to { transform: rotate(360deg); } }
 
-.leaf { transform-box: fill-box; transform-origin: 0% 50%; transition: transform .8s ease, opacity .8s ease; }
+.leaf { transform-box: fill-box; transform-origin: 0% 50%; transition: transform .45s ease, opacity .45s ease; }
 .leaf.open { transform: scaleX(0.08); opacity: 0.3; }
 
 .doorKnob {
@@ -210,12 +212,19 @@
 
 .portal {
   position: fixed; inset: 0; z-index: 40; pointer-events: none;
-  transition: transform 1.3s cubic-bezier(.5,0,.75,.45), opacity .5s ease 1.05s;
+  transition: transform .8s cubic-bezier(.5,0,.75,.45), opacity .3s ease .55s;
 }
 .portal.zoomed { transform: scale(11); opacity: 0; }
 .portalSvg { width: 100%; height: 100%; display: block; }
-.pglow { transition: opacity .55s ease .1s; }
+.pglow { transition: opacity .3s ease .05s; }
 .pglow.off { opacity: 0; }
+
+/* la porta che si chiude alle spalle: buio pieno, poi la stanza nuova */
+.velo {
+  position: fixed; inset: 0; z-index: 42; background: #000; pointer-events: none;
+  animation: veloVia .5s ease .1s both;
+}
+@keyframes veloVia { from { opacity: 1; } to { opacity: 0; } }
 
 .kicker {
   font-family: 'IBM Plex Mono', monospace; font-size: 11px;
@@ -434,4 +443,5 @@
   .acqua, .catenella, .pompaLeva { transition: none; }
   .pompaLeva.attiva .ruota { animation: none; }
   .rotella { animation-duration: 1.6s; }
+  .velo { animation-duration: .2s; }
 }
