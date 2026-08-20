@@ -189,6 +189,22 @@
 }
 @keyframes rotella { to { transform: rotate(360deg); } }
 
+/* durante i caricamenti la stanza è ancora al buio: nero pieno sulla
+   carta (stessi margini negativi del livello V), rotellina nel nero */
+.caricamento.nera {
+  background: #000; border-radius: 6px;
+  margin: -34px -24px -26px;
+  min-height: 430px;
+}
+.caricamento.nera .rotella {
+  border-color: rgba(242,234,216,0.18);
+  border-top-color: var(--lanterna);
+}
+
+/* a caricamento finito la stanza emerge dal buio */
+.apparsa { animation: apparsa .35s ease both; }
+@keyframes apparsa { from { opacity: 0; } to { opacity: 1; } }
+
 .leaf { transform-box: fill-box; transform-origin: 0% 50%; transition: transform .45s ease, opacity .45s ease; }
 .leaf.open { transform: scaleX(0.08); opacity: 0.3; }
 
@@ -444,4 +460,5 @@
   .pompaLeva.attiva .ruota { animation: none; }
   .rotella { animation-duration: 1.6s; }
   .velo { animation-duration: .2s; }
+  .apparsa { animation: none; }
 }

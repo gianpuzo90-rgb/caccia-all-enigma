@@ -348,8 +348,10 @@ export function EnigmaLevel({
 
   const vista = () => {
     if (stato === "carico") {
+      /* Nero pieno, non carta vuota: il caricamento è la stanza ancora
+         al buio, in continuità col velo della porta che si chiude. */
       return (
-        <div className="caricamento" role="status" aria-label="Caricamento">
+        <div className="caricamento nera" role="status" aria-label="Caricamento">
           <div className="rotella" />
         </div>
       );
@@ -549,7 +551,12 @@ export function EnigmaLevel({
 
   return (
     <>
-      {vista()}
+      <div
+        key={`${stato}-${enigma?.livello ?? 0}`}
+        className={stato === "carico" ? undefined : "apparsa"}
+      >
+        {vista()}
+      </div>
       {overlay}
     </>
   );
