@@ -35,9 +35,12 @@ export async function GET(
   }
 
   const admin = supabaseAdmin();
+  // soluzioni_hash serve SOLO a sapere se il livello è di scena (nessuna
+  // risposta da dare): non entra mai nella risposta, che elenca i campi
+  // a mano più sotto.
   const { data: enigma } = await admin
     .from("enigmi")
-    .select("livello, titolo, corpo, media_path, attivo")
+    .select("livello, titolo, corpo, media_path, attivo, soluzioni_hash")
     .eq("livello", livello)
     .maybeSingle();
 
@@ -74,6 +77,8 @@ export async function GET(
       indizi_totali: indiziTotali ?? 0,
       indizi_usati: mioProgresso?.indizi_usati ?? 0,
       risolto: livello <= massimo,
+      // livello di scena: si supera con un gesto, non con una risposta
+      scena: (enigma.soluzioni_hash?.length ?? 0) === 0,
     },
     { headers: { "Cache-Control": "no-store" } }
   );

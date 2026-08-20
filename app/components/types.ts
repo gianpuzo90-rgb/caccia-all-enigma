@@ -31,6 +31,9 @@ export type EnigmaDTO = {
   indizi_totali: number;
   indizi_usati: number;
   risolto: boolean;
+  /** Livello di scena: nessuna soluzione da indovinare, si supera con
+      il gesto della stanza (pomello, catenella, pompa). */
+  scena: boolean;
 };
 
 export type VerificaOk = { corretto: boolean; prossimo?: number | null };

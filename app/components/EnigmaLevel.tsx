@@ -348,11 +348,12 @@ export function EnigmaLevel({
     if (e.key === "Enter") invia();
   };
 
-  /* Al Buio non ha risposta: il completamento è il gesto stesso di
-     girare il pomello. Il server accetta i livelli di scena (nessuna
-     soluzione seminata) senza risposta; l'avanzamento resta suo. */
-  const [tentativoBuio, setTentativoBuio] = useState(0);
-  const completaBuio = async () => {
+  /* I livelli di scena non hanno risposta: il completamento è il gesto
+     stesso (girare il pomello, azionare la pompa). Il server li accetta
+     senza risposta perché non hanno soluzioni seminate; l'avanzamento
+     resta comunque scritto da lui. */
+  const [tentativoScena, setTentativoScena] = useState(0);
+  const completaScena = async () => {
     if (!enigma || verificando) return;
     onClearError();
     setVerificando(true);
@@ -369,7 +370,7 @@ export function EnigmaLevel({
       const data = await res.json();
       if (!res.ok || !data.corretto) {
         onFail(data.errore || "Qualcosa è andato storto. Riprova.");
-        setTentativoBuio((t) => t + 1); // rimonta il pomello: si può rigirare
+        setTentativoScena((t) => t + 1); // rimonta il pomello: si può rigirare
         return;
       }
       if (data.prossimo) {
@@ -384,7 +385,7 @@ export function EnigmaLevel({
       }
     } catch {
       onFail("Qualcosa è andato storto. Riprova.");
-      setTentativoBuio((t) => t + 1);
+      setTentativoScena((t) => t + 1);
     } finally {
       setVerificando(false);
     }
@@ -476,13 +477,13 @@ export function EnigmaLevel({
       return (
         <div className="buio">
           <Door
-            key={tentativoBuio}
+            key={tentativoScena}
             sceneRef={doorSceneRef}
             variant="buio"
             onComplete={
               enigma!.risolto
                 ? () => apriPortale(() => avanzaDaRivisita(LIVELLO_BUIO), true, chiudiSipario)
-                : completaBuio
+                : completaScena
             }
           />
         </div>
@@ -496,11 +497,14 @@ export function EnigmaLevel({
             Livello {romano(enigma!.livello)} — {enigma!.titolo}
           </p>
           <Pompa
+            key={tentativoScena}
             sceneRef={doorSceneRef}
             tappoInserito={idr.tappoInserito}
             giaDrenata={idr.acquaAlQuarto}
             onPompata={() => aggiornaIdraulica({ acquaAlQuarto: true })}
-            onSbloccato={() => setAcquaDrenataPompa(true)}
+            // se il livello non ha una risposta da dare, il pomello lo
+            // completa; altrimenti scopre l'enigma di testo sotto
+            onSbloccato={enigma!.scena ? completaScena : () => setAcquaDrenataPompa(true)}
           />
         </>
       );
@@ -546,6 +550,34 @@ export function EnigmaLevel({
             giaDrenata={idr.acquaAlQuarto}
             onPompata={() => aggiornaIdraulica({ acquaAlQuarto: true })}
             onSbloccato={() => apriPortale(() => avanzaDaRivisita(LIVELLO_POMPA), true, chiudiSipario)}
+          />
+        </>
+      );
+    }
+
+    /* Livello di scena senza una stanza su misura: una porta e basta.
+       È la forma di un livello ancora da scrivere — si attraversa, non
+       si risolve — e diventa un enigma vero appena gli si seminano le
+       soluzioni, senza toccare il codice. */
+    if (enigma!.scena) {
+      return (
+        <>
+          <p className="kicker">
+            Livello {romano(enigma!.livello)} — {enigma!.titolo}
+          </p>
+          {enigma!.corpo && (
+            <p className="riddle" style={{ whiteSpace: "pre-line" }}>
+              {enigma!.corpo}
+            </p>
+          )}
+          <Door
+            key={tentativoScena}
+            sceneRef={doorSceneRef}
+            onComplete={
+              enigma!.risolto
+                ? () => apriPortale(() => avanzaDaRivisita(enigma!.livello), true, chiudiSipario)
+                : completaScena
+            }
           />
         </>
       );

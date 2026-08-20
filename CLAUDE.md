@@ -110,10 +110,17 @@ del web diventa gioco. Restano client-side perché non contengono segreti.
   Scarico") è allagato e si drena tirando la catenella del tappo.
   Il V ("Al Buio") è schermo nero: il pomello è invisibile ma
   funziona al solito posto — la prova è trovarlo a memoria; girandolo
-  filtra la luce dall'arco. Non ha risposta: è un *livello di scena*,
-  cioè una riga di `enigmi` senza `soluzioni_hash`, che `/api/verifica`
-  accetta con risposta vuota (l'avanzamento resta comunque scritto dal
-  server). L'acqua del IV finisce nel VI ("La Pompa"), dove la pompa
+  filtra la luce dall'arco. Non ha risposta: è un *livello di scena*.
+
+  Un livello di scena è semplicemente una riga di `enigmi` **senza
+  `soluzioni_hash`**: si supera con il gesto della stanza invece che
+  con una risposta. `/api/enigma` lo segnala al client con `scena:
+  true`, `/api/verifica` lo accetta con risposta vuota, e l'avanzamento
+  resta comunque scritto dal server. Un livello di scena privo di una
+  stanza su misura mostra la sola porta da girare: è la forma di un
+  livello ancora da scrivere, e diventa un enigma vero nel momento in
+  cui gli si seminano le soluzioni, senza toccare il codice. Serve
+  quindi la semina **solo** per gli enigmi con una risposta da dare. L'acqua del IV finisce nel VI ("La Pompa"), dove la pompa
   la rimanda su — ma tiene solo se prima si è tornati al IV a
   rimettere il tappo, altrimenti l'acqua cala e ritorna. Rivisitando
   il IV si ritrova la stanza stessa (senza acqua, o riallagata se la
