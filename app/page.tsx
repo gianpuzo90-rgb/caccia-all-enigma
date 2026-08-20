@@ -15,6 +15,8 @@ import { UserGlyph } from "./components/icons";
 import { usePortale } from "./components/usePortale";
 import {
   K,
+  LIVELLO_RIFLESSO,
+  LIVELLO_SPECCHIO,
   TITOLI_ONBOARDING,
   didascaliaLivello,
   leggiLocale,
@@ -95,7 +97,13 @@ export default function CacciaAllEnigma() {
   const [massimoLivello, setMassimoLivello] = useState(
     () => leggiLocale<{ level: number }>(K.progresso)?.level || 1
   );
-  const [frontieraEnigmi, setFrontieraEnigmi] = useState<number | null>(null);
+  const [frontieraEnigmi, setFrontieraEnigmi] = useState<number | null>(
+    () => leggiLocale<{ livello: number }>(K.frontiera)?.livello ?? null
+  );
+  const segnaFrontiera = (l: number) => {
+    setFrontieraEnigmi(l);
+    scriviLocale(K.frontiera, { livello: l });
+  };
 
   const [view, setView] = useState<View>("game");
   const { sceneRef: doorSceneRef, portale: portal, apri: apriPortale } = usePortale();
@@ -204,6 +212,46 @@ export default function CacciaAllEnigma() {
 
   const clearError = () => setError("");
 
+  /* Lo Specchio non si tocca: si supera tornando al livello che riflette
+     e girando quel pomello dall'altra parte. Il gesto si sblocca solo
+     quando lo Specchio è stato raggiunto — ma il cancello vero è del
+     server, che rifiuta i livelli non ancora sbloccati. */
+  const specchioRaggiunto =
+    !!sessione && level === LIVELLO_RIFLESSO && (frontieraEnigmi ?? 0) >= LIVELLO_SPECCHIO;
+
+  const attraversaSpecchio = async () => {
+    setError("");
+    let prossimo: number | null = null;
+    try {
+      const res = await fetch("/api/verifica", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ livello: LIVELLO_SPECCHIO, risposta: "" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.corretto) {
+        fail(data.errore || "Qualcosa è andato storto. Riprova.");
+        return;
+      }
+      prossimo = data.prossimo ?? null;
+    } catch {
+      fail("Qualcosa è andato storto. Riprova.");
+      return;
+    }
+    if (prossimo !== null) segnaFrontiera(prossimo);
+    const meta = prossimo ?? LIVELLO_SPECCHIO;
+    apriPortale(
+      () => {
+        setLivelloEnigmaMax((prev) => (prev === null || meta > prev ? meta : prev));
+        setRichiestaEnigma((prev) => ({ livello: meta, chiave: (prev?.chiave ?? 0) + 1 }));
+        setFinestraEnigmi(null);
+        setLevel(PRIMO_LIVELLO_ENIGMA);
+      },
+      true,
+      chiudiSipario
+    );
+  };
+
   const openPortal = (next: number, lit: boolean) => {
     setError("");
     apriPortale(() => setLevel(next), lit, chiudiSipario);
@@ -291,6 +339,7 @@ export default function CacciaAllEnigma() {
                 setTimeout(() => setPulse(false), 900);
               }}
               onComplete={() => openPortal(3, true)}
+              onCompleteInverso={specchioRaggiunto ? attraversaSpecchio : undefined}
             />
           </>
         );
@@ -341,7 +390,7 @@ export default function CacciaAllEnigma() {
             }}
             richiesta={richiestaEnigma}
             onCaricamento={setCaricamentoEnigma}
-            onFrontiera={setFrontieraEnigmi}
+            onFrontiera={segnaFrontiera}
             chiudiSipario={chiudiSipario}
             onServeAccesso={() => {
               // niente sessione (logout o scaduta): si torna alla porta
@@ -508,7 +557,11 @@ export default function CacciaAllEnigma() {
           {nota && <p className="nota">{nota}</p>}
           {portal && view === "game" && <div className="cardBuio" aria-hidden="true" />}
         </div>
-        {didascalia && <p className="didascalia">{didascalia}</p>}
+        {didascalia && (
+          <p className={"didascalia" + (livelloEnigma === LIVELLO_SPECCHIO ? " riflessa" : "")}>
+            {didascalia}
+          </p>
+        )}
       </main>
 
       <footer className="foot">

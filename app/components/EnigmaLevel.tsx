@@ -9,12 +9,14 @@ import { Portal } from "./Portal";
 import { Sottacqua } from "./Sottacqua";
 import { Pompa } from "./Pompa";
 import { StanzaScarico } from "./StanzaScarico";
+import { Specchio } from "./Specchio";
 import { usePortale } from "./usePortale";
 import {
   K,
   LIVELLO_ALLAGATO,
   LIVELLO_BUIO,
   LIVELLO_POMPA,
+  LIVELLO_SPECCHIO,
   leggiLocale,
   didascaliaLivello,
   scriviLocale,
@@ -549,6 +551,12 @@ export function EnigmaLevel({
           />
         </>
       );
+    }
+
+    /* Lo Specchio: la stanza del II riflessa, e qui non si tocca nulla
+       — nemmeno da risolto. Si passa sempre dall'originale. */
+    if (enigma!.livello === LIVELLO_SPECCHIO) {
+      return <Specchio sceneRef={doorSceneRef} />;
     }
 
     /* Livello di scena senza una stanza su misura: una porta e basta.

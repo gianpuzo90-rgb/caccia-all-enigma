@@ -12,6 +12,9 @@ type DoorProps = {
   inert?: boolean;
   onInert?: () => void;
   inertLabel?: string;
+  /** Se c'è, il pomello gira anche in senso antiorario e a giro
+      completo dall'altra parte chiama questa invece di onComplete. */
+  onCompleteInverso?: () => void;
 };
 
 /* --------- Porta: pomello girevole, bloccato o attivo --------- */
@@ -23,6 +26,7 @@ export function Door({
   inert = false,
   onInert,
   inertLabel = "Pomello bloccato",
+  onCompleteInverso,
 }: DoorProps) {
   const TARGET = 270;
   const knobRef = useRef<HTMLDivElement | null>(null);
@@ -41,11 +45,17 @@ export function Door({
 
   const apply = (delta: number) => {
     if (doneRef.current) return;
-    angleRef.current = Math.max(0, Math.min(TARGET, angleRef.current + delta));
+    // il giro antiorario esiste solo dove serve: altrove il pomello si
+    // ferma a zero come ha sempre fatto
+    const minimo = onCompleteInverso ? -TARGET : 0;
+    angleRef.current = Math.max(minimo, Math.min(TARGET, angleRef.current + delta));
     setAngle(angleRef.current);
     if (angleRef.current >= TARGET) {
       doneRef.current = true;
       onComplete?.();
+    } else if (angleRef.current <= -TARGET) {
+      doneRef.current = true;
+      onCompleteInverso?.();
     }
   };
 
@@ -74,7 +84,7 @@ export function Door({
     dragRef.current.active = false;
   };
 
-  const progress = angle / TARGET;
+  const progress = Math.abs(angle) / TARGET;
 
   return (
     <div className="doorScene" ref={sceneRef}>
@@ -134,13 +144,14 @@ export function Door({
         onPointerCancel={stop}
         onAnimationEnd={() => setStuck(false)}
         onKeyDown={(e) => {
-          if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-            e.preventDefault();
-            if (inert) {
-              setStuck(true);
-              onInert?.();
-            } else apply(24);
-          }
+          const orario = e.key === "ArrowRight" || e.key === "ArrowUp";
+          const antiorario = e.key === "ArrowLeft" || e.key === "ArrowDown";
+          if (!orario && !antiorario) return;
+          e.preventDefault();
+          if (inert) {
+            setStuck(true);
+            onInert?.();
+          } else apply(orario ? 24 : -24);
         }}
       >
         {variant === "buio" ? null : variant === "biscotto" ? (

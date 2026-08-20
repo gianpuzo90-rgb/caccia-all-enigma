@@ -129,6 +129,15 @@ del web diventa gioco. Restano client-side perché non contengono segreti.
   (tappo inserito, acqua al IV) sono in localStorage sotto
   `cae:idraulica`; quando mancano si deducono dai progressi server,
   quindi il gioco regge al cambio di dispositivo.
+- **VII — Lo Specchio**: riflette la stanza del II (stessa porta, stesso
+  pomello a biscotto) rovesciata, titolo compreso. Qui dentro non si
+  muove niente: il pomello sembra vivo ma traballa e basta. Si passa
+  tornando al **II** e girando *quel* pomello in senso **antiorario** —
+  gesto che esiste solo per chi ha già raggiunto lo Specchio. Il
+  cancello visibile sta in `cae:frontiera` (localStorage), ma a
+  decidere davvero resta il server, che rifiuta i livelli non sbloccati.
+- **VIII — La Soglia**: segnaposto, un livello di scena con la sola
+  porta. Diventa un enigma vero quando gli si semina una risposta.
 - Le scene si presentano senza testi introduttivi: il titolo del
   livello ("Livello 5 — Al Buio") sta **sotto** la carta, come la
   targhetta di un quadro, così resta leggibile anche quando la stanza

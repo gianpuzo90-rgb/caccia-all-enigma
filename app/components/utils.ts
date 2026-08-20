@@ -23,6 +23,10 @@ export const TITOLI_ONBOARDING = ["Ingresso", "I Biscotti", "Il Patto"];
 export const LIVELLO_ALLAGATO = 4;
 export const LIVELLO_BUIO = 5;
 export const LIVELLO_POMPA = 6;
+/* Lo Specchio riflette la stanza del livello II e non si tocca: si
+   supera tornando al II e girando quel pomello al contrario. */
+export const LIVELLO_SPECCHIO = 7;
+export const LIVELLO_RIFLESSO = 2;
 
 /** La didascalia sotto la carta. Numeri arabi, come nella barra. */
 export const didascaliaLivello = (livello: number, titolo: string) =>
@@ -65,4 +69,8 @@ export const K = {
   consenso: "cae:consenso",
   progresso: "cae:progresso",
   idraulica: "cae:idraulica",
+  // il livello più basso non ancora risolto, per sapere anche dai
+  // livelli 1-3 se lo Specchio è già stato raggiunto. È solo un
+  // cancello di scena: il server resta l'unico a decidere davvero.
+  frontiera: "cae:frontiera",
 };

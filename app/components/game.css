@@ -87,6 +87,14 @@
   display: flex; flex-direction: column; align-items: stretch;
 }
 
+/* --------- Livello VII: lo Specchio --------- */
+/* La stanza del II riflessa: tutto rovesciato, titolo compreso. Il
+   riflesso non sbiadisce quello che copia — il pomello sembra vivo
+   come l'originale, ma traballa e basta: è lì la trappola. */
+.specchio { transform: scaleX(-1); }
+.didascalia.riflessa { transform: scaleX(-1); }
+.specchio .doorKnob.inert { filter: none; cursor: default; }
+
 /* il titolo del livello, sotto la carta come la targhetta di un quadro:
    resta leggibile anche quando la stanza è tutta nera */
 .didascalia {
