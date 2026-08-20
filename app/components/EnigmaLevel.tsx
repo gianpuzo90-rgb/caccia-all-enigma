@@ -67,9 +67,15 @@ type EnigmaLevelProps = {
       sulla barra). La chiave cresce a ogni click, così anche una
       richiesta per lo stesso livello di prima viene riascoltata. */
   richiesta?: { livello: number; chiave: number } | null;
-  /** La carta in questo momento è tutta nera (caricamento o livello
-      Al Buio): la shell spegne il sigillo per non sovrapporlo al nero. */
-  onCartaScura?: (scura: boolean) => void;
+  /** C'è un fetch in corso: la shell tiene giù il sipario nero e
+      mostra la rotellina finché non è tutto pronto. */
+  onCaricamento?: (caricando: boolean) => void;
+  /** Il livello più basso non ancora risolto: la barra colora "fatti"
+      i livelli sotto la frontiera. */
+  onFrontiera?: (livello: number) => void;
+  /** Cala il sipario nero della shell (chiamato dalla coreografia del
+      portale verso la fine dello zoom). */
+  chiudiSipario?: () => void;
 };
 
 type Stato = "carico" | "pronto" | "risolto" | "completato" | "errore";
@@ -84,7 +90,9 @@ export function EnigmaLevel({
   onCambioLivello,
   onLivelloMassimo,
   richiesta,
-  onCartaScura,
+  onCaricamento,
+  onFrontiera,
+  chiudiSipario,
 }: EnigmaLevelProps) {
   const [stato, setStato] = useState<Stato>("carico");
   const [enigma, setEnigma] = useState<EnigmaDTO | null>(null);
@@ -101,9 +109,14 @@ export function EnigmaLevel({
   const [idraulica, setIdraulica] = useState<Idraulica | null>(() => leggiIdraulica());
 
   /* Il livello più basso non ancora risolto (o il primo oltre l'ultimo
-     enigma esistente): guida la navigazione in avanti e la deduzione
-     dello stato idraulico quando i bit locali mancano. */
+     enigma esistente): guida la navigazione in avanti, la deduzione
+     dello stato idraulico quando i bit locali mancano, e i "fatti"
+     della barra del genitore. */
   const [frontiera, setFrontiera] = useState<number | null>(null);
+  const segnaFrontiera = (l: number) => {
+    setFrontiera(l);
+    onFrontiera?.(l);
+  };
 
   /* Finché i bit non sono noti si assume lo stato di partenza. */
   const idr = idraulica ?? { tappoInserito: true, acquaAlQuarto: false };
@@ -130,7 +143,7 @@ export function EnigmaLevel({
     scriviLocale(K.idraulica, dedotta);
   }, [frontiera, idraulica]);
 
-  const { sceneRef: doorSceneRef, portale, velo, apri: apriPortale } = usePortale();
+  const { sceneRef: doorSceneRef, portale, apri: apriPortale } = usePortale();
 
   /* Il server sa qual è il livello sbloccato: si parte dal primo e si
      avanza finché non se ne trova uno non ancora risolto, o si scopre
@@ -154,7 +167,7 @@ export function EnigmaLevel({
         return;
       }
       if (res.status === 404) {
-        setFrontiera(l);
+        segnaFrontiera(l);
         if (ultimoEsistente !== null) onLivelloMassimo?.(ultimoEsistente);
         setStato("completato");
         return;
@@ -167,7 +180,7 @@ export function EnigmaLevel({
       ultimoEsistente = data.livello;
       if (!data.risolto) {
         setEnigma(data);
-        setFrontiera(data.livello);
+        segnaFrontiera(data.livello);
         setStato("pronto");
         onCambioLivello?.(data.livello);
         return;
@@ -228,15 +241,14 @@ export function EnigmaLevel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [richiesta?.chiave]);
 
-  /* La shell deve sapere quando la carta è tutta nera. */
-  const cartaScura =
-    stato === "carico" || (stato === "pronto" && enigma?.livello === LIVELLO_BUIO);
+  /* La shell tiene giù il sipario finché c'è da caricare. Il cleanup
+     evita di lasciarlo bloccato se si smonta a metà (ritorno all'onboarding). */
+  const caricando = stato === "carico";
   useEffect(() => {
-    onCartaScura?.(cartaScura);
-    // allo smontaggio (es. ritorno ai livelli 1-3) il sigillo riappare
-    return () => onCartaScura?.(false);
+    onCaricamento?.(caricando);
+    return () => onCaricamento?.(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cartaScura]);
+  }, [caricando]);
 
   const invia = async () => {
     if (!enigma || verificando) return;
@@ -261,13 +273,13 @@ export function EnigmaLevel({
       }
       if (data.prossimo) {
         setProssimoLivello(data.prossimo);
-        setFrontiera(data.prossimo);
+        segnaFrontiera(data.prossimo);
         // il prossimo livello è già sbloccato lato server: la barra deve
         // offrirlo subito, anche se si naviga via prima di varcare la porta
         onLivelloMassimo?.(data.prossimo);
         setStato("risolto");
       } else {
-        setFrontiera(enigma.livello + 1);
+        segnaFrontiera(enigma.livello + 1);
         onLivelloMassimo?.(enigma.livello);
         setStato("completato");
       }
@@ -280,9 +292,13 @@ export function EnigmaLevel({
 
   const avanza = () => {
     if (prossimoLivello == null) return;
-    apriPortale(() => {
-      caricaLivello(prossimoLivello, true);
-    });
+    apriPortale(
+      () => {
+        caricaLivello(prossimoLivello, true);
+      },
+      true,
+      chiudiSipario
+    );
   };
 
   const chiediIndizio = async () => {
@@ -337,12 +353,12 @@ export function EnigmaLevel({
         return;
       }
       if (data.prossimo) {
-        setFrontiera(data.prossimo);
+        segnaFrontiera(data.prossimo);
         onLivelloMassimo?.(data.prossimo);
         const prossimo = data.prossimo;
-        apriPortale(() => caricaLivello(prossimo, true));
+        apriPortale(() => caricaLivello(prossimo, true), true, chiudiSipario);
       } else {
-        setFrontiera(enigma.livello + 1);
+        segnaFrontiera(enigma.livello + 1);
         onLivelloMassimo?.(enigma.livello);
         setStato("completato");
       }
@@ -354,19 +370,14 @@ export function EnigmaLevel({
     }
   };
 
-  /* Portale e velo devono restare montati qualunque vista sia attiva:
-     l'overlay copre lo scambio di contenuto. Escono dal .card (che ha
+  /* Il portale deve restare montato qualunque vista sia attiva:
+     l'overlay copre lo scambio di contenuto. Esce dal .card (che ha
      un transform e farebbe da containing block ai position:fixed) via
      createPortal, come nei livelli 1-3. */
   const overlay =
-    (portale || velo) && typeof document !== "undefined"
+    portale && typeof document !== "undefined"
       ? createPortal(
-          <>
-            {portale && (
-              <Portal rect={portale} lit={portale.lit} leafOpen={portale.leafOpen} zoom={portale.zoom} />
-            )}
-            {velo && <div className="velo" aria-hidden="true" />}
-          </>,
+          <Portal rect={portale} lit={portale.lit} leafOpen={portale.leafOpen} zoom={portale.zoom} />,
           document.body
         )
       : null;
@@ -374,7 +385,7 @@ export function EnigmaLevel({
   const vista = () => {
     if (stato === "carico") {
       /* Nero pieno, non carta vuota: il caricamento è la stanza ancora
-         al buio, in continuità col velo della porta che si chiude. */
+         al buio, in continuità col sipario della shell. */
       return (
         <div className="caricamento nera" role="status" aria-label="Caricamento">
           <div className="rotella" />
@@ -450,7 +461,7 @@ export function EnigmaLevel({
             variant="buio"
             onComplete={
               enigma!.risolto
-                ? () => apriPortale(() => avanzaDaRivisita(LIVELLO_BUIO))
+                ? () => apriPortale(() => avanzaDaRivisita(LIVELLO_BUIO), true, chiudiSipario)
                 : completaBuio
             }
           />
@@ -493,7 +504,7 @@ export function EnigmaLevel({
               setAcquaDrenataPompa(false);
             }}
             onRimettiTappo={() => aggiornaIdraulica({ tappoInserito: true })}
-            onAvanti={() => apriPortale(() => avanzaDaRivisita(LIVELLO_ALLAGATO))}
+            onAvanti={() => apriPortale(() => avanzaDaRivisita(LIVELLO_ALLAGATO), true, chiudiSipario)}
           />
         </>
       );
@@ -514,7 +525,7 @@ export function EnigmaLevel({
             tappoInserito={idr.tappoInserito}
             giaDrenata={idr.acquaAlQuarto}
             onPompata={() => aggiornaIdraulica({ acquaAlQuarto: true })}
-            onSbloccato={() => apriPortale(() => avanzaDaRivisita(LIVELLO_POMPA))}
+            onSbloccato={() => apriPortale(() => avanzaDaRivisita(LIVELLO_POMPA), true, chiudiSipario)}
           />
         </>
       );
@@ -550,7 +561,10 @@ export function EnigmaLevel({
         {enigma!.risolto ? (
           <>
             <p className="aside">Hai già risolto questo enigma: la porta è aperta.</p>
-            <Door sceneRef={doorSceneRef} onComplete={() => apriPortale(() => avanzaDaRivisita(enigma!.livello))} />
+            <Door
+              sceneRef={doorSceneRef}
+              onComplete={() => apriPortale(() => avanzaDaRivisita(enigma!.livello), true, chiudiSipario)}
+            />
           </>
         ) : (
           <>
@@ -576,12 +590,7 @@ export function EnigmaLevel({
 
   return (
     <>
-      <div
-        key={`${stato}-${enigma?.livello ?? 0}`}
-        className={stato === "carico" ? undefined : "apparsa"}
-      >
-        {vista()}
-      </div>
+      {vista()}
       {portale && <div className="cardBuio" aria-hidden="true" />}
       {overlay}
     </>

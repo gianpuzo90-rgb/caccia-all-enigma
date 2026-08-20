@@ -13,7 +13,7 @@ import { CookiePreferencesPage } from "./components/CookiePreferencesPage";
 import { EnigmaLevel } from "./components/EnigmaLevel";
 import { UserGlyph } from "./components/icons";
 import { usePortale } from "./components/usePortale";
-import { K, ROMANS, leggiLocale, rimuoviLocale, romano, scriviLocale } from "./components/utils";
+import { K, LIVELLO_BUIO, ROMANS, leggiLocale, rimuoviLocale, romano, scriviLocale } from "./components/utils";
 import type { Consenso, Sessione, View } from "./components/types";
 
 /* ==================================================================
@@ -62,12 +62,34 @@ export default function CacciaAllEnigma() {
   // account (Supabase Auth)
   const [sessione, setSessione] = useState<Sessione | null>(null);
 
-  // la carta di EnigmaLevel è tutta nera (caricamento o Al Buio):
-  // il sigillo si spegne per non galleggiare sul nero
-  const [cartaScura, setCartaScura] = useState(false);
+  /* Il sipario: ogni transizione passa da uno schermo tutto nero (con
+     la rotellina se c'è da caricare) e la stanza nuova appare in
+     dissolvenza solo quando è tutta pronta. Stati: aperto → chiuso
+     (nero pieno) → svelando (dissolvenza) → aperto. */
+  const [sipario, setSipario] = useState<"aperto" | "chiuso" | "svelando">("aperto");
+  // il nero resta giù un minimo, per leggersi come buio e non sfarfallio
+  const [attesaMinima, setAttesaMinima] = useState(false);
+  const [caricamentoEnigma, setCaricamentoEnigma] = useState(false);
+  const chiudiSipario = () => {
+    setSipario("chiuso");
+    setAttesaMinima(true);
+  };
+  // azioni istantanee (click sulla barra): prima il nero, poi lo scambio
+  const conSipario = (azione: () => void) => {
+    chiudiSipario();
+    window.setTimeout(azione, 200);
+  };
+
+  // il massimo livello mai raggiunto (per barra e salvataggio: non
+  // regredisce rivisitando) e la frontiera degli enigmi (il più basso
+  // non risolto, riportato da EnigmaLevel: colora i "fatti" in barra)
+  const [massimoLivello, setMassimoLivello] = useState(
+    () => leggiLocale<{ level: number }>(K.progresso)?.level || 1
+  );
+  const [frontieraEnigmi, setFrontieraEnigmi] = useState<number | null>(null);
 
   const [view, setView] = useState<View>("game");
-  const { sceneRef: doorSceneRef, portale: portal, velo, apri: apriPortale } = usePortale();
+  const { sceneRef: doorSceneRef, portale: portal, apri: apriPortale } = usePortale();
   const barRef = useRef<HTMLDivElement | null>(null);
   const [barH, setBarH] = useState(0);
 
@@ -105,9 +127,40 @@ export default function CacciaAllEnigma() {
     // Si salva solo il punto più avanzato: rivisitare i livelli 1-3
     // dalla barra non deve far ripartire da lì al prossimo accesso.
     if (!pronto) return;
-    const salvato = leggiLocale<{ level: number }>(K.progresso)?.level || 1;
-    scriviLocale(K.progresso, { level: Math.max(level, salvato) });
+    const max = Math.max(level, massimoLivello);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (max !== massimoLivello) setMassimoLivello(max);
+    scriviLocale(K.progresso, { level: max });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level, pronto]);
+
+  // all'avvio oltre l'onboarding c'è subito un enigma da caricare:
+  // meglio partire già a sipario chiuso che mostrare la carta vuota
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (pronto && level > 3) chiudiSipario();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pronto]);
+
+  useEffect(() => {
+    if (!attesaMinima) return;
+    const t = window.setTimeout(() => setAttesaMinima(false), 450);
+    return () => window.clearTimeout(t);
+  }, [attesaMinima]);
+
+  // il sipario si rialza solo quando non c'è più nulla da caricare
+  // ed è passata l'attesa minima
+  useEffect(() => {
+    if (sipario !== "chiuso" || caricamentoEnigma || attesaMinima) return;
+    const t = window.setTimeout(() => setSipario("svelando"), 30);
+    return () => window.clearTimeout(t);
+  }, [sipario, caricamentoEnigma, attesaMinima]);
+
+  useEffect(() => {
+    if (sipario !== "svelando") return;
+    const t = window.setTimeout(() => setSipario("aperto"), 500);
+    return () => window.clearTimeout(t);
+  }, [sipario]);
 
   // il banner è fisso in fondo: teniamo libero lo spazio che occupa.
   // Quando è chiuso non c'è nulla da misurare: barH resta quel che era,
@@ -144,7 +197,7 @@ export default function CacciaAllEnigma() {
 
   const openPortal = (next: number, lit: boolean) => {
     setError("");
-    apriPortale(() => setLevel(next), lit);
+    apriPortale(() => setLevel(next), lit, chiudiSipario);
   };
 
   // click sulla barra in alto: livelli 1-3 fra quelli già raggiunti
@@ -152,21 +205,25 @@ export default function CacciaAllEnigma() {
   // possono rigirare per tornare avanti); livelli 4+ fra quelli già
   // raggiunti, li gestisce EnigmaLevel.
   const vaiALivelloOnboarding = (n: number) => {
-    if (n <= 3 && (n <= level || level > 3)) {
+    if (n <= 3 && n !== level && n <= massimoLivello) {
       setError("");
-      // una richiesta pendente non deve scattare quando EnigmaLevel
-      // verrà rimontato attraversando di nuovo la porta del III
-      setRichiestaEnigma(null);
-      setLevel(n);
+      conSipario(() => {
+        // una richiesta pendente non deve scattare quando EnigmaLevel
+        // verrà rimontato attraversando di nuovo la porta del III
+        setRichiestaEnigma(null);
+        setLevel(n);
+      });
     }
   };
   const vaiALivelloEnigma = (n: number) => {
-    if (livelloEnigmaMax !== null && n <= livelloEnigmaMax) {
+    if (livelloEnigmaMax !== null && n <= livelloEnigmaMax && !(level > 3 && n === livelloEnigma)) {
       setError("");
-      setRichiestaEnigma((prev) => ({ livello: n, chiave: (prev?.chiave ?? 0) + 1 }));
-      // dai livelli 1-3 rivisitati si può saltare direttamente a un
-      // enigma: EnigmaLevel al mount vedrà la richiesta e andrà lì
-      if (level <= 3) setLevel(4);
+      conSipario(() => {
+        setRichiestaEnigma((prev) => ({ livello: n, chiave: (prev?.chiave ?? 0) + 1 }));
+        // dai livelli 1-3 rivisitati si può saltare direttamente a un
+        // enigma: EnigmaLevel al mount vedrà la richiesta e andrà lì
+        if (level <= 3) setLevel(4);
+      });
     }
   };
 
@@ -202,14 +259,18 @@ export default function CacciaAllEnigma() {
   };
 
   const resetAll = () => {
-    setLevel(1);
     setError("");
-    setView("game");
-    setLivelloEnigma(null);
-    setLivelloEnigmaMax(null);
-    setRichiestaEnigma(null);
-    setFinestraEnigmi(null);
-    scriviLocale(K.progresso, { level: 1 });
+    conSipario(() => {
+      setLevel(1);
+      setView("game");
+      setLivelloEnigma(null);
+      setLivelloEnigmaMax(null);
+      setRichiestaEnigma(null);
+      setFinestraEnigmi(null);
+      setFrontieraEnigmi(null);
+      setMassimoLivello(1);
+      scriviLocale(K.progresso, { level: 1 });
+    });
   };
 
   /* --------------------------- livelli --------------------------- */
@@ -255,7 +316,12 @@ export default function CacciaAllEnigma() {
                 setPulseAuth(true);
                 setTimeout(() => setPulseAuth(false), 900);
               }}
-              onComplete={() => openPortal(4, true)}
+              onComplete={() => {
+                // la porta del III dà sulla stanza 4, non sull'enigma in
+                // corso: l'ingresso è sequenziale, poi la barra fa il resto
+                setRichiestaEnigma((prev) => ({ livello: 4, chiave: (prev?.chiave ?? 0) + 1 }));
+                openPortal(4, true);
+              }}
             />
           </>
         );
@@ -283,7 +349,9 @@ export default function CacciaAllEnigma() {
               setLivelloEnigmaMax((prev) => (prev === null || l > prev ? l : prev));
             }}
             richiesta={richiestaEnigma}
-            onCartaScura={setCartaScura}
+            onCaricamento={setCaricamentoEnigma}
+            onFrontiera={setFrontieraEnigmi}
+            chiudiSipario={chiudiSipario}
           />
         );
     }
@@ -361,13 +429,18 @@ export default function CacciaAllEnigma() {
         <div className="progress" aria-label="Livelli">
           {ROMANS.map((_, i) => {
             const n = i + 1;
-            const cliccabile = n <= level || level > 3;
+            // "fatto" = completato almeno una volta (il massimo raggiunto
+            // non regredisce); "now" solo se è il livello che stai vedendo
             return (
               <button
                 key={n}
                 type="button"
-                className={"step" + (n < level ? " done" : "") + (n === level ? " now" : "")}
-                disabled={!cliccabile}
+                className={
+                  "step" +
+                  (n < massimoLivello ? " done" : "") +
+                  (level <= 3 && n === level ? " now" : "")
+                }
+                disabled={n > massimoLivello}
                 onClick={() => vaiALivelloOnboarding(n)}
               >
                 {n}
@@ -390,14 +463,14 @@ export default function CacciaAllEnigma() {
                 <button
                   key={n}
                   type="button"
-                  // livelloEnigma null con la barra visibile = caccia
-                  // completata: tutti i livelli sono risolti, quindi "done".
+                  // "fatto" = sotto la frontiera (il più basso non risolto);
+                  // "now" solo se è l'enigma davvero a schermo
                   className={
                     "step" +
-                    (n < (livelloEnigma ?? livelloEnigmaMax + 1) ? " done" : "") +
-                    (n === livelloEnigma ? " now" : "")
+                    (n < (frontieraEnigmi ?? livelloEnigma ?? livelloEnigmaMax + 1) ? " done" : "") +
+                    (level > 3 && n === livelloEnigma ? " now" : "")
                   }
-                  aria-current={n === livelloEnigma ? "step" : undefined}
+                  aria-current={level > 3 && n === livelloEnigma ? "step" : undefined}
                   onClick={() => vaiALivelloEnigma(n)}
                 >
                   {n}
@@ -428,7 +501,9 @@ export default function CacciaAllEnigma() {
           className={"card in" + (shake ? " shake" : "")}
           onAnimationEnd={() => setShake(false)}
         >
-          {!(view === "game" && level > 3 && cartaScura) && <div className="seal">{sigillo()}</div>}
+          {!(view === "game" && level > 3 && livelloEnigma === LIVELLO_BUIO) && (
+            <div className="seal">{sigillo()}</div>
+          )}
           {contenuto()}
           {error && <p className="error">{error}</p>}
           {nota && <p className="nota">{nota}</p>}
@@ -448,7 +523,11 @@ export default function CacciaAllEnigma() {
       </footer>
 
       {portal && <Portal rect={portal} lit={portal.lit} leafOpen={portal.leafOpen} zoom={portal.zoom} />}
-      {velo && <div className="velo" aria-hidden="true" />}
+      {sipario !== "aperto" && (
+        <div className={"sipario" + (sipario === "svelando" ? " via" : "")} aria-hidden="true">
+          {caricamentoEnigma && <div className="rotella chiara" />}
+        </div>
+      )}
 
       {consenso === null && (
         <CookieBanner

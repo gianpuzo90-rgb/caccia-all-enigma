@@ -203,9 +203,6 @@
   border-top-color: var(--lanterna);
 }
 
-/* a caricamento finito la stanza emerge dal buio */
-.apparsa { animation: apparsa .35s ease both; }
-@keyframes apparsa { from { opacity: 0; } to { opacity: 1; } }
 
 .leaf { transform-box: fill-box; transform-origin: 0% 50%; transition: transform .45s ease, opacity .45s ease; }
 .leaf.open { transform: scaleX(0.08); opacity: 0.3; }
@@ -238,16 +235,20 @@
 .pglow { transition: opacity .3s ease .05s; }
 .pglow.off { opacity: 0; }
 
-/* la porta che si chiude alle spalle: cala il buio, poi la stanza nuova */
-.velo {
-  position: fixed; inset: 0; z-index: 56; background: #000; pointer-events: none;
-  animation: veloCiclo .7s ease both;
+/* il sipario: ogni transizione passa dal nero pieno a tutto schermo,
+   con la rotellina se c'è da caricare; la stanza nuova appare in
+   dissolvenza solo quando è tutta pronta */
+.sipario {
+  position: fixed; inset: 0; z-index: 56; background: #000;
+  display: flex; align-items: center; justify-content: center;
+  animation: sipChiude .18s ease both;
 }
-@keyframes veloCiclo {
-  0% { opacity: 0; }
-  18% { opacity: 1; }
-  55% { opacity: 1; }
-  100% { opacity: 0; }
+.sipario.via { animation: sipVia .5s ease both; pointer-events: none; }
+@keyframes sipChiude { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sipVia { from { opacity: 1; } to { opacity: 0; } }
+.rotella.chiara {
+  border-color: rgba(242,234,216,0.18);
+  border-top-color: var(--lanterna);
 }
 
 /* mentre il portale è aperto la carta sotto resta nera: dietro l'arco
@@ -475,6 +476,6 @@
   .acqua, .catenella, .pompaLeva { transition: none; }
   .pompaLeva.attiva .ruota { animation: none; }
   .rotella { animation-duration: 1.6s; }
-  .velo { animation-duration: .2s; }
-  .apparsa { animation: none; }
+  .sipario { animation-duration: .1s; }
+  .sipario.via { animation-duration: .2s; }
 }
