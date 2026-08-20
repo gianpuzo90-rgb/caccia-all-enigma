@@ -98,8 +98,8 @@ del web diventa gioco. Restano client-side perché non contengono segreti.
 
 - **I — Ingresso**: una porta in stile mistico, nessuna scritta. Si apre
   girando il pomello in senso orario (drag col mouse o col dito). A giro
-  completo la porta si spalanca *sulla pagina successiva*, che si intravede
-  attraverso l'arco, e la scena zooma attraversandola.
+  completo la porta si spalanca sul buio della stanza successiva e la
+  scena zooma attraversandola; la stanza si accende all'arrivo.
 - **II — I Biscotti**: stessa porta, pomello a forma di biscotto. È inerte
   finché il giocatore non ha risposto al banner cookie; se lo forza,
   traballa e il banner lampeggia.

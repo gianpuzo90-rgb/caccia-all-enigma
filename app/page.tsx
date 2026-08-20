@@ -416,6 +416,7 @@ export default function CacciaAllEnigma() {
           {contenuto()}
           {error && <p className="error">{error}</p>}
           {nota && <p className="nota">{nota}</p>}
+          {portal && view === "game" && <div className="cardBuio" aria-hidden="true" />}
         </div>
       </main>
 

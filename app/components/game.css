@@ -235,12 +235,21 @@
 .pglow { transition: opacity .3s ease .05s; }
 .pglow.off { opacity: 0; }
 
-/* la porta che si chiude alle spalle: buio pieno, poi la stanza nuova */
+/* la porta che si chiude alle spalle: cala il buio, poi la stanza nuova */
 .velo {
   position: fixed; inset: 0; z-index: 42; background: #000; pointer-events: none;
-  animation: veloVia .5s ease .1s both;
+  animation: veloCiclo .7s ease both;
 }
-@keyframes veloVia { from { opacity: 1; } to { opacity: 0; } }
+@keyframes veloCiclo {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  55% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* mentre il portale è aperto la carta sotto resta nera: dietro l'arco
+   c'è buio, non un'altra scena che si accavalla alla porta */
+.cardBuio { position: absolute; inset: 0; z-index: 5; background: #000; border-radius: 6px; }
 
 .kicker {
   font-family: 'IBM Plex Mono', monospace; font-size: 11px;

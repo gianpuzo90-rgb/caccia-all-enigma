@@ -557,6 +557,7 @@ export function EnigmaLevel({
       >
         {vista()}
       </div>
+      {portale && <div className="cardBuio" aria-hidden="true" />}
       {overlay}
     </>
   );
