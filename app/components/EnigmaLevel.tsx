@@ -10,7 +10,15 @@ import { Sottacqua } from "./Sottacqua";
 import { Pompa } from "./Pompa";
 import { StanzaScarico } from "./StanzaScarico";
 import { usePortale } from "./usePortale";
-import { K, leggiLocale, romano, scriviLocale } from "./utils";
+import {
+  K,
+  LIVELLO_ALLAGATO,
+  LIVELLO_BUIO,
+  LIVELLO_POMPA,
+  leggiLocale,
+  romano,
+  scriviLocale,
+} from "./utils";
 
 /* Il livello IV apre su una stanza allagata: si tira la catenella del
    tappo, l'acqua defluisce, il pomello si sblocca. Il V è "Al Buio":
@@ -20,10 +28,8 @@ import { K, leggiLocale, romano, scriviLocale } from "./utils";
    tornato al suo posto — altrimenti rifluisce dallo stesso scarico.
    Rivisitando un livello risolto se ne ritrova la scena: alle stesse
    condizioni (stanza asciutta, buio superabile) si può rigirare il
-   pomello e passare al successivo. L'acqua o è al IV o è al VI. */
-const LIVELLO_ALLAGATO = 4;
-const LIVELLO_BUIO = 5;
-const LIVELLO_POMPA = 6;
+   pomello e passare al successivo. L'acqua o è al IV o è al VI.
+   Le costanti dei livelli-scena vivono in utils.ts. */
 
 /* Il primo livello governato dal server: deve combaciare con
    PRIMO_LIVELLO_SERVER in lib/enigmi.ts (non importabile qui: usa
@@ -61,6 +67,9 @@ type EnigmaLevelProps = {
       sulla barra). La chiave cresce a ogni click, così anche una
       richiesta per lo stesso livello di prima viene riascoltata. */
   richiesta?: { livello: number; chiave: number } | null;
+  /** La carta in questo momento è tutta nera (caricamento o livello
+      Al Buio): la shell spegne il sigillo per non sovrapporlo al nero. */
+  onCartaScura?: (scura: boolean) => void;
 };
 
 type Stato = "carico" | "pronto" | "risolto" | "completato" | "errore";
@@ -75,6 +84,7 @@ export function EnigmaLevel({
   onCambioLivello,
   onLivelloMassimo,
   richiesta,
+  onCartaScura,
 }: EnigmaLevelProps) {
   const [stato, setStato] = useState<Stato>("carico");
   const [enigma, setEnigma] = useState<EnigmaDTO | null>(null);
@@ -200,8 +210,13 @@ export function EnigmaLevel({
   useEffect(() => {
     // Fetch al mount: il setState effettivo avviene solo dopo l'await
     // dentro caricaLivello (fetch di rete), mai in modo sincrono qui.
+    // Se c'è già una richiesta esplicita (click sulla barra arrivato
+    // mentre eravamo smontati, es. dai livelli 1-3 rivisitati), si va
+    // dritti lì invece di cercare l'enigma in corso: niente due fetch
+    // in corsa l'uno contro l'altro.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    caricaLivello(PRIMO_LIVELLO, false);
+    if (richiesta != null) mostraLivello(richiesta.livello);
+    else caricaLivello(PRIMO_LIVELLO, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -212,6 +227,16 @@ export function EnigmaLevel({
     mostraLivello(richiesta.livello);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [richiesta?.chiave]);
+
+  /* La shell deve sapere quando la carta è tutta nera. */
+  const cartaScura =
+    stato === "carico" || (stato === "pronto" && enigma?.livello === LIVELLO_BUIO);
+  useEffect(() => {
+    onCartaScura?.(cartaScura);
+    // allo smontaggio (es. ritorno ai livelli 1-3) il sigillo riappare
+    return () => onCartaScura?.(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartaScura]);
 
   const invia = async () => {
     if (!enigma || verificando) return;

@@ -23,11 +23,13 @@ export function usePortale() {
     const r = el.getBoundingClientRect();
     setPortale({ x: r.left, y: r.top, w: r.width, h: r.height, lit, leafOpen: false, zoom: false });
     scambiaContenuto();
+    // il velo parte prima che lo zoom scopra la pagina: mai un fotogramma
+    // di interfaccia nuda fra la fine dello zoom e il buio
     setTimeout(() => setPortale((p) => (p ? { ...p, leafOpen: true } : p)), 60);
     setTimeout(() => setPortale((p) => (p ? { ...p, zoom: true } : p)), 500);
-    setTimeout(() => setVelo(true), 1250);
+    setTimeout(() => setVelo(true), 1050);
     setTimeout(() => setPortale(null), 1400);
-    setTimeout(() => setVelo(false), 1950);
+    setTimeout(() => setVelo(false), 1750);
   };
 
   return { sceneRef, portale, velo, apri };

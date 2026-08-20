@@ -18,6 +18,12 @@ export const forzaPassword = (p: string): number => {
 
 export const ROMANS = ["I", "II", "III"];
 
+/* Livelli con una scena speciale: servono sia a EnigmaLevel sia alla
+   shell (es. per spegnere il sigillo quando lo schermo è tutto nero). */
+export const LIVELLO_ALLAGATO = 4;
+export const LIVELLO_BUIO = 5;
+export const LIVELLO_POMPA = 6;
+
 /* La barra dei livelli è tutta in numeri romani, onboarding ed enigmi. */
 export function romano(n: number): string {
   const tavola: Array<[number, string]> = [

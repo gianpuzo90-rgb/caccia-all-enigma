@@ -194,7 +194,9 @@
 .caricamento.nera {
   background: #000; border-radius: 6px;
   margin: -34px -24px -26px;
-  min-height: 430px;
+  /* stessa altezza delle stanze (scena 320 + kicker + margini): la
+     carta non salta di dimensione quando la stanza si accende */
+  min-height: 405px;
 }
 .caricamento.nera .rotella {
   border-color: rgba(242,234,216,0.18);
@@ -227,7 +229,8 @@
 }
 
 .portal {
-  position: fixed; inset: 0; z-index: 40; pointer-events: none;
+  /* sopra l'icona del login (45), sotto il banner cookie (60) */
+  position: fixed; inset: 0; z-index: 55; pointer-events: none;
   transition: transform .8s cubic-bezier(.5,0,.75,.45), opacity .3s ease .55s;
 }
 .portal.zoomed { transform: scale(11); opacity: 0; }
@@ -237,7 +240,7 @@
 
 /* la porta che si chiude alle spalle: cala il buio, poi la stanza nuova */
 .velo {
-  position: fixed; inset: 0; z-index: 42; background: #000; pointer-events: none;
+  position: fixed; inset: 0; z-index: 56; background: #000; pointer-events: none;
   animation: veloCiclo .7s ease both;
 }
 @keyframes veloCiclo {
@@ -248,8 +251,12 @@
 }
 
 /* mentre il portale è aperto la carta sotto resta nera: dietro l'arco
-   c'è buio, non un'altra scena che si accavalla alla porta */
-.cardBuio { position: absolute; inset: 0; z-index: 5; background: #000; border-radius: 6px; }
+   c'è buio, non un'altra scena che si accavalla alla porta. I margini
+   negativi coprono anche il sigillo, che sporge dall'angolo. */
+.cardBuio {
+  position: absolute; inset: -20px -8px -8px -14px; z-index: 5;
+  background: #000; border-radius: 10px;
+}
 
 .kicker {
   font-family: 'IBM Plex Mono', monospace; font-size: 11px;
