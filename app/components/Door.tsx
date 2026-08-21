@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { ARCH } from "./utils";
 
 type DoorVariant = "ottone" | "biscotto" | "serratura" | "scarico" | "buio";
@@ -43,13 +43,26 @@ export function Door({
     return (Math.atan2(e.clientY - cy, e.clientX - cx) * 180) / Math.PI;
   };
 
+  /* Il dito manda molti più eventi di quanti fotogrammi ci siano: si
+     accumula l'angolo e si ridisegna una volta per fotogramma, così il
+     pomello resta fluido anche sui telefoni lenti. */
+  const frameRef = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+  }, []);
+
   const apply = (delta: number) => {
     if (doneRef.current) return;
     // il giro antiorario esiste solo dove serve: altrove il pomello si
     // ferma a zero come ha sempre fatto
     const minimo = onCompleteInverso ? -TARGET : 0;
     angleRef.current = Math.max(minimo, Math.min(TARGET, angleRef.current + delta));
-    setAngle(angleRef.current);
+    if (frameRef.current === null) {
+      frameRef.current = requestAnimationFrame(() => {
+        frameRef.current = null;
+        setAngle(angleRef.current);
+      });
+    }
     if (angleRef.current >= TARGET) {
       doneRef.current = true;
       onComplete?.();

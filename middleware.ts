@@ -2,9 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Rinfresca il token di sessione a ogni richiesta e lo riscrive nei
+ * Rinfresca il token di sessione a ogni navigazione e lo riscrive nei
  * cookie httpOnly. Senza questo, le sessioni lunghe scadono e le API
  * cominciano a rispondere 401 a utenti legittimi.
+ *
+ * Le rotte /api sono escluse di proposito: verificano già l'identità
+ * per conto loro con getUser(), e passare di qui raddoppiava il giro
+ * di rete verso Supabase su ogni singola chiamata del gioco.
  */
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -31,5 +35,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|webp)$).*)"],
+  matcher: ["/((?!api/|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|webp)$).*)"],
 };

@@ -23,10 +23,10 @@ export function usePortale() {
     const r = el.getBoundingClientRect();
     setPortale({ x: r.left, y: r.top, w: r.width, h: r.height, lit, leafOpen: false, zoom: false });
     scambiaContenuto();
-    setTimeout(() => setPortale((p) => (p ? { ...p, leafOpen: true } : p)), 60);
-    setTimeout(() => setPortale((p) => (p ? { ...p, zoom: true } : p)), 500);
-    if (onOscura) setTimeout(onOscura, 1050);
-    setTimeout(() => setPortale(null), 1400);
+    setTimeout(() => setPortale((p) => (p ? { ...p, leafOpen: true } : p)), 40);
+    setTimeout(() => setPortale((p) => (p ? { ...p, zoom: true } : p)), 380);
+    if (onOscura) setTimeout(onOscura, 800);
+    setTimeout(() => setPortale(null), 1050);
   };
 
   return { sceneRef, portale, apri };

@@ -88,7 +88,7 @@ export default function CacciaAllEnigma() {
   // azioni istantanee (click sulla barra): prima il nero, poi lo scambio
   const conSipario = (azione: () => void) => {
     chiudiSipario();
-    window.setTimeout(azione, 200);
+    window.setTimeout(azione, 110);
   };
 
   // il massimo livello mai raggiunto (per barra e salvataggio: non
@@ -161,7 +161,7 @@ export default function CacciaAllEnigma() {
 
   useEffect(() => {
     if (!attesaMinima) return;
-    const t = window.setTimeout(() => setAttesaMinima(false), 450);
+    const t = window.setTimeout(() => setAttesaMinima(false), 260);
     return () => window.clearTimeout(t);
   }, [attesaMinima]);
 
@@ -169,13 +169,13 @@ export default function CacciaAllEnigma() {
   // ed è passata l'attesa minima
   useEffect(() => {
     if (sipario !== "chiuso" || caricamentoEnigma || attesaMinima) return;
-    const t = window.setTimeout(() => setSipario("svelando"), 30);
+    const t = window.setTimeout(() => setSipario("svelando"), 16);
     return () => window.clearTimeout(t);
   }, [sipario, caricamentoEnigma, attesaMinima]);
 
   useEffect(() => {
     if (sipario !== "svelando") return;
-    const t = window.setTimeout(() => setSipario("aperto"), 500);
+    const t = window.setTimeout(() => setSipario("aperto"), 360);
     return () => window.clearTimeout(t);
   }, [sipario]);
 

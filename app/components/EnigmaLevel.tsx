@@ -33,11 +33,6 @@ import {
    pomello e passare al successivo. L'acqua o è al IV o è al VI.
    Le costanti dei livelli-scena vivono in utils.ts. */
 
-/* Il primo livello governato dal server: deve combaciare con
-   PRIMO_LIVELLO_SERVER in lib/enigmi.ts (non importabile qui: usa
-   "crypto" di Node e non va bundlato lato client). */
-const PRIMO_LIVELLO = 4;
-const LIMITE_RICERCA = 200;
 
 /* Lo stato idraulico condiviso fra IV e VI, persistito in localStorage:
    due bit veri (dov'è il tappo, dov'è l'acqua). Quando mancano — primo
@@ -153,56 +148,8 @@ export function EnigmaLevel({
 
   const { sceneRef: doorSceneRef, portale, apri: apriPortale } = usePortale();
 
-  /* Il server sa qual è il livello sbloccato: si parte dal primo e si
-     avanza finché non se ne trova uno non ancora risolto, o si scopre
-     che non ce ne sono altri.
-     resetView=false al primo mount: lo stato iniziale dei tre useState
-     qui sopra è già quello di "sto caricando", non serve riscriverlo
-     (ed evita un setState sincrono dentro l'effetto di mount). */
-  const caricaLivello = async (livello: number, resetView = true) => {
-    if (resetView) {
-      setStato("carico");
-      setIndizi([]);
-      setRisposta("");
-    }
-    let ultimoEsistente: number | null = null;
-    for (let l = livello; l < livello + LIMITE_RICERCA; l++) {
-      let res: Response;
-      try {
-        res = await fetch(`/api/enigma/${l}`, { cache: "no-store" });
-      } catch {
-        setStato("errore");
-        return;
-      }
-      if (res.status === 401) {
-        onServeAccesso?.();
-        return;
-      }
-      if (res.status === 404) {
-        segnaFrontiera(l);
-        if (ultimoEsistente !== null) onLivelloMassimo?.(ultimoEsistente);
-        setStato("completato");
-        return;
-      }
-      if (!res.ok) {
-        setStato("errore");
-        return;
-      }
-      const data: EnigmaDTO = await res.json();
-      ultimoEsistente = data.livello;
-      if (!data.risolto) {
-        setEnigma(data);
-        segnaFrontiera(data.livello);
-        setStato("pronto");
-        onCambioLivello?.(data.livello);
-        return;
-      }
-    }
-    setStato("errore");
-  };
-
-  /* Salto diretto a un livello già raggiunto (click sulla barra): un
-     solo fetch, nessuna ricerca. Mostra anche gli enigmi già risolti. */
+  /* Ogni navigazione è UNA sola chiamata. Il livello si chiede per
+     numero; se non esiste (404) la caccia è finita. */
   const mostraLivello = async (livello: number) => {
     setStato("carico");
     setIndizi([]);
@@ -218,34 +165,75 @@ export function EnigmaLevel({
       onServeAccesso?.();
       return;
     }
+    if (res.status === 404) {
+      // oltre l'ultimo enigma scritto: schermata finale
+      segnaFrontiera(livello);
+      onLivelloMassimo?.(livello - 1);
+      setStato("completato");
+      return;
+    }
     if (!res.ok) {
       setStato("errore");
       return;
     }
     const data: EnigmaDTO = await res.json();
     setEnigma(data);
+    if (!data.risolto) segnaFrontiera(data.livello);
     setStato("pronto");
     onCambioLivello?.(data.livello);
   };
 
+  /* Dove sono rimasto: un colpo solo a /api/progresso invece di
+     risalire la scala un livello alla volta. */
+  const vaiAllEnigmaInCorso = async (resetView = true) => {
+    if (resetView) {
+      setStato("carico");
+      setIndizi([]);
+      setRisposta("");
+    }
+    let res: Response;
+    try {
+      res = await fetch("/api/progresso", { cache: "no-store" });
+    } catch {
+      setStato("errore");
+      return;
+    }
+    if (res.status === 401) {
+      onServeAccesso?.();
+      return;
+    }
+    if (!res.ok) {
+      setStato("errore");
+      return;
+    }
+    const { corrente, ultimo } = (await res.json()) as {
+      corrente: number | null;
+      ultimo: number;
+    };
+    if (corrente === null) {
+      segnaFrontiera(ultimo + 1);
+      onLivelloMassimo?.(ultimo);
+      setStato("completato");
+      return;
+    }
+    onLivelloMassimo?.(corrente);
+    await mostraLivello(corrente);
+  };
+
   /* Da un livello risolto si può riattraversare la porta: al successivo
      se è già noto, o dritti all'enigma in corso / al finale. */
-  const avanzaDaRivisita = (livello: number) => {
-    const succ = livello + 1;
-    if (frontiera !== null && succ < frontiera) mostraLivello(succ);
-    else caricaLivello(succ);
-  };
+  const avanzaDaRivisita = (livello: number) => mostraLivello(livello + 1);
 
   useEffect(() => {
     // Fetch al mount: il setState effettivo avviene solo dopo l'await
-    // dentro caricaLivello (fetch di rete), mai in modo sincrono qui.
+    // dentro le funzioni di rete, mai in modo sincrono qui.
     // Se c'è già una richiesta esplicita (click sulla barra arrivato
     // mentre eravamo smontati, es. dai livelli 1-3 rivisitati), si va
     // dritti lì invece di cercare l'enigma in corso: niente due fetch
     // in corsa l'uno contro l'altro.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (richiesta != null) mostraLivello(richiesta.livello);
-    else caricaLivello(PRIMO_LIVELLO, false);
+    else vaiAllEnigmaInCorso(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -325,13 +313,7 @@ export function EnigmaLevel({
 
   const avanza = () => {
     if (prossimoLivello == null) return;
-    apriPortale(
-      () => {
-        caricaLivello(prossimoLivello, true);
-      },
-      true,
-      chiudiSipario
-    );
+    apriPortale(() => mostraLivello(prossimoLivello), true, chiudiSipario);
   };
 
   const chiediIndizio = async () => {
@@ -394,7 +376,7 @@ export function EnigmaLevel({
         segnaFrontiera(data.prossimo);
         onLivelloMassimo?.(data.prossimo);
         const prossimo = data.prossimo;
-        apriPortale(() => caricaLivello(prossimo, true), true, chiudiSipario);
+        apriPortale(() => mostraLivello(prossimo), true, chiudiSipario);
       } else {
         segnaFrontiera(enigma.livello + 1);
         onLivelloMassimo?.(enigma.livello);
@@ -435,7 +417,7 @@ export function EnigmaLevel({
       return (
         <>
           <p className="riddle">Errore di caricamento. Riprova tra poco.</p>
-          <button className="btn" onClick={() => caricaLivello(PRIMO_LIVELLO)}>
+          <button className="btn" onClick={() => vaiAllEnigmaInCorso()}>
             Riprova
           </button>
         </>
