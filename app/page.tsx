@@ -83,9 +83,13 @@ export default function CacciaAllEnigma() {
   const [attesaRisposta, setAttesaRisposta] = useState(false);
   // il titolo del livello mostrato da EnigmaLevel, scritto sotto la carta
   const [didascaliaEnigma, setDidascaliaEnigma] = useState<string | null>(null);
+  // la rotella non parte con l'animazione: compare verso la fine, e
+  // solo se a quel punto c'è ancora qualcosa da aspettare
+  const [rotellaTardiva, setRotellaTardiva] = useState(false);
   const chiudiSipario = () => {
     setSipario("chiuso");
     setAttesaMinima(true);
+    setRotellaTardiva(false);
   };
   // azioni istantanee (click sulla barra): prima il nero, poi lo scambio
   const conSipario = (azione: () => void) => {
@@ -160,6 +164,12 @@ export default function CacciaAllEnigma() {
     if (pronto && level > 3) chiudiSipario();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pronto]);
+
+  useEffect(() => {
+    if (sipario !== "chiuso") return;
+    const t = window.setTimeout(() => setRotellaTardiva(true), 1150);
+    return () => window.clearTimeout(t);
+  }, [sipario]);
 
   useEffect(() => {
     if (!attesaMinima) return;
@@ -597,9 +607,9 @@ export default function CacciaAllEnigma() {
         <div
           className={"sipario" + (sipario === "svelando" ? " via" : "")}
           role="status"
-          aria-label={caricamentoEnigma ? "Caricamento" : undefined}
+          aria-label={caricamentoEnigma && rotellaTardiva ? "Caricamento" : undefined}
         >
-          {caricamentoEnigma && sipario === "chiuso" && <div className="rotella" />}
+          {caricamentoEnigma && sipario === "chiuso" && rotellaTardiva && <div className="rotella" />}
         </div>
       )}
 

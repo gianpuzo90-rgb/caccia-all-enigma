@@ -28,8 +28,8 @@ export function usePortale() {
        su brandelli di pagina che spuntano man mano che l'arco cresce. */
     onOscura?.();
     setTimeout(() => setPortale((p) => (p ? { ...p, leafOpen: true } : p)), 40);
-    setTimeout(() => setPortale((p) => (p ? { ...p, zoom: true } : p)), 380);
-    setTimeout(() => setPortale(null), 1050);
+    setTimeout(() => setPortale((p) => (p ? { ...p, zoom: true } : p)), 560);
+    setTimeout(() => setPortale(null), 1400);
   };
 
   return { sceneRef, portale, apri };
