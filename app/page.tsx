@@ -169,8 +169,16 @@ export default function CacciaAllEnigma() {
   // ed è passata l'attesa minima
   useEffect(() => {
     if (sipario !== "chiuso" || caricamentoEnigma || attesaMinima) return;
-    const t = window.setTimeout(() => setSipario("svelando"), 16);
-    return () => window.clearTimeout(t);
+    // due fotogrammi: il primo monta la stanza, il secondo garantisce
+    // che sia stata disegnata prima di togliere il nero
+    let secondo = 0;
+    const primo = requestAnimationFrame(() => {
+      secondo = requestAnimationFrame(() => setSipario("svelando"));
+    });
+    return () => {
+      cancelAnimationFrame(primo);
+      cancelAnimationFrame(secondo);
+    };
   }, [sipario, caricamentoEnigma, attesaMinima]);
 
   useEffect(() => {
@@ -219,33 +227,35 @@ export default function CacciaAllEnigma() {
   const specchioRaggiunto =
     !!sessione && level === LIVELLO_RIFLESSO && (frontieraEnigmi ?? 0) >= LIVELLO_SPECCHIO;
 
-  const attraversaSpecchio = async () => {
+  const attraversaSpecchio = () => {
     setError("");
-    let prossimo: number | null = null;
-    try {
-      const res = await fetch("/api/verifica", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ livello: LIVELLO_SPECCHIO, risposta: "" }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.corretto) {
-        fail(data.errore || "Qualcosa è andato storto. Riprova.");
-        return;
-      }
-      prossimo = data.prossimo ?? null;
-    } catch {
-      fail("Qualcosa è andato storto. Riprova.");
-      return;
-    }
-    if (prossimo !== null) segnaFrontiera(prossimo);
-    const meta = prossimo ?? LIVELLO_SPECCHIO;
+    // la porta si apre subito: il server registra il passaggio mentre
+    // l'animazione corre, e il sipario aspetta comunque la risposta
+    const inVolo = fetch("/api/verifica", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ livello: LIVELLO_SPECCHIO, risposta: "" }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        return res.ok && data.corretto ? (data.prossimo ?? LIVELLO_SPECCHIO) : null;
+      })
+      .catch(() => null);
+
     apriPortale(
       () => {
-        setLivelloEnigmaMax((prev) => (prev === null || meta > prev ? meta : prev));
-        setRichiestaEnigma((prev) => ({ livello: meta, chiave: (prev?.chiave ?? 0) + 1 }));
-        setFinestraEnigmi(null);
         setLevel(PRIMO_LIVELLO_ENIGMA);
+        void inVolo.then((meta) => {
+          if (meta === null) {
+            fail("Qualcosa è andato storto. Riprova.");
+            setLevel(LIVELLO_RIFLESSO);
+            return;
+          }
+          segnaFrontiera(meta);
+          setLivelloEnigmaMax((prev) => (prev === null || meta > prev ? meta : prev));
+          setRichiestaEnigma((prev) => ({ livello: meta, chiave: (prev?.chiave ?? 0) + 1 }));
+          setFinestraEnigmi(null);
+        });
       },
       true,
       chiudiSipario
@@ -577,9 +587,7 @@ export default function CacciaAllEnigma() {
 
       {portal && <Portal rect={portal} lit={portal.lit} leafOpen={portal.leafOpen} zoom={portal.zoom} />}
       {sipario !== "aperto" && (
-        <div className={"sipario" + (sipario === "svelando" ? " via" : "")} aria-hidden="true">
-          {caricamentoEnigma && <div className="rotella chiara" />}
-        </div>
+        <div className={"sipario" + (sipario === "svelando" ? " via" : "")} aria-hidden="true" />
       )}
 
       {consenso === null && (

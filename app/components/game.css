@@ -82,6 +82,9 @@
              box-shadow: 0 0 22px rgba(232,163,61,.6); transform: scale(1.15); }
 }
 
+/* attesa: solo un vuoto della misura di una stanza, sotto il sipario */
+.attesa { min-height: 405px; }
+
 .stage {
   width: 100%; max-width: 430px; flex: 1;
   display: flex; flex-direction: column; align-items: stretch;
@@ -201,28 +204,7 @@
 /* tanto non si vede: al buio la presa è molto più generosa */
 .buio .doorKnob { width: 140px; height: 140px; }
 
-/* rotellina di caricamento generica */
-.caricamento { min-height: 240px; display: flex; align-items: center; justify-content: center; }
-.rotella {
-  width: 34px; height: 34px; border-radius: 50%;
-  border: 3px solid rgba(43,36,24,0.15); border-top-color: var(--sigillo);
-  animation: rotella .8s linear infinite;
-}
-@keyframes rotella { to { transform: rotate(360deg); } }
 
-/* durante i caricamenti la stanza è ancora al buio: nero pieno sulla
-   carta (stessi margini negativi del livello V), rotellina nel nero */
-.caricamento.nera {
-  background: #000; border-radius: 6px;
-  margin: -34px -24px -26px;
-  /* stessa altezza delle stanze (scena 320 + kicker + margini): la
-     carta non salta di dimensione quando la stanza si accende */
-  min-height: 405px;
-}
-.caricamento.nera .rotella {
-  border-color: rgba(242,234,216,0.18);
-  border-top-color: var(--lanterna);
-}
 
 
 .leaf { transform-box: fill-box; transform-origin: 0% 50%; transition: transform .38s ease, opacity .38s ease; }
@@ -267,10 +249,6 @@
 .sipario.via { animation: sipVia .36s ease both; pointer-events: none; }
 @keyframes sipChiude { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sipVia { from { opacity: 1; } to { opacity: 0; } }
-.rotella.chiara {
-  border-color: rgba(242,234,216,0.18);
-  border-top-color: var(--lanterna);
-}
 
 /* mentre il portale è aperto la carta sotto resta nera: dietro l'arco
    c'è buio, non un'altra scena che si accavalla alla porta. I margini
@@ -496,7 +474,6 @@
   .portal, .pglow, .leaf, .step, .toggle, .toggle .knob, .btn { transition: none; }
   .acqua, .catenella, .pompaLeva { transition: none; }
   .pompaLeva.attiva .ruota { animation: none; }
-  .rotella { animation-duration: 1.6s; }
   .sipario { animation-duration: .1s; }
   .sipario.via { animation-duration: .2s; }
 }

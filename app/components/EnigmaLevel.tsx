@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { EnigmaDTO, IndizioOk } from "./types";
 import { Classifica } from "./Classifica";
@@ -66,8 +66,8 @@ type EnigmaLevelProps = {
       sulla barra). La chiave cresce a ogni click, così anche una
       richiesta per lo stesso livello di prima viene riascoltata. */
   richiesta?: { livello: number; chiave: number } | null;
-  /** C'è un fetch in corso: la shell tiene giù il sipario nero e
-      mostra la rotellina finché non è tutto pronto. */
+  /** C'è un fetch in corso: la shell tiene giù il sipario nero
+      finché non è tutto pronto. */
   onCaricamento?: (caricando: boolean) => void;
   /** Il livello più basso non ancora risolto: la barra colora "fatti"
       i livelli sotto la frontiera. */
@@ -148,12 +148,24 @@ export function EnigmaLevel({
 
   const { sceneRef: doorSceneRef, portale, apri: apriPortale } = usePortale();
 
-  /* Ogni navigazione è UNA sola chiamata. Il livello si chiede per
-     numero; se non esiste (404) la caccia è finita. */
+  /* Un enigma già risolto non cambia più: tenerlo in memoria rende
+     immediato il viavai fra i livelli vecchi. */
+  const inMemoria = useRef(new Map<number, EnigmaDTO>());
+
+  /* Ogni navigazione è UNA sola chiamata — nessuna se il livello è già
+     in memoria. Il livello si chiede per numero; se non esiste (404)
+     la caccia è finita. */
   const mostraLivello = async (livello: number) => {
-    setStato("carico");
     setIndizi([]);
     setRisposta("");
+    const noto = inMemoria.current.get(livello);
+    if (noto) {
+      setEnigma(noto);
+      setStato("pronto");
+      onCambioLivello?.(livello);
+      return;
+    }
+    setStato("carico");
     let res: Response;
     try {
       res = await fetch(`/api/enigma/${livello}`, { cache: "no-store" });
@@ -178,7 +190,8 @@ export function EnigmaLevel({
     }
     const data: EnigmaDTO = await res.json();
     setEnigma(data);
-    if (!data.risolto) segnaFrontiera(data.livello);
+    if (data.risolto) inMemoria.current.set(data.livello, data);
+    else segnaFrontiera(data.livello);
     setStato("pronto");
     onCambioLivello?.(data.livello);
   };
@@ -206,18 +219,23 @@ export function EnigmaLevel({
       setStato("errore");
       return;
     }
-    const { corrente, ultimo } = (await res.json()) as {
+    const { corrente, ultimo, enigma: inCorso } = (await res.json()) as {
       corrente: number | null;
       ultimo: number;
+      enigma: EnigmaDTO | null;
     };
-    if (corrente === null) {
+    if (corrente === null || inCorso === null) {
       segnaFrontiera(ultimo + 1);
       onLivelloMassimo?.(ultimo);
       setStato("completato");
       return;
     }
+    // l'enigma arriva già dentro la stessa risposta: niente seconda richiesta
     onLivelloMassimo?.(corrente);
-    await mostraLivello(corrente);
+    segnaFrontiera(corrente);
+    setEnigma(inCorso);
+    setStato("pronto");
+    onCambioLivello?.(corrente);
   };
 
   /* Da un livello risolto si può riattraversare la porta: al successivo
@@ -352,16 +370,32 @@ export function EnigmaLevel({
      senza risposta perché non hanno soluzioni seminate; l'avanzamento
      resta comunque scritto da lui. */
   const [tentativoScena, setTentativoScena] = useState(0);
-  const completaScena = async () => {
+  const completaScena = () => {
     if (!enigma || verificando) return;
     onClearError();
     setVerificando(true);
+    const livello = enigma.livello;
+    /* La porta si apre SUBITO: il server registra il passaggio mentre
+       l'animazione corre. Il sipario resta giù finché la risposta non
+       è arrivata, quindi non si vede mai una stanza a metà. */
+    const inVolo = fetch("/api/verifica", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ livello, risposta: "" }),
+    });
+    apriPortale(
+      () => {
+        setStato("carico");
+        void concludiScena(livello, inVolo);
+      },
+      true,
+      chiudiSipario
+    );
+  };
+
+  const concludiScena = async (livello: number, inVolo: Promise<Response>) => {
     try {
-      const res = await fetch("/api/verifica", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ livello: enigma.livello, risposta: "" }),
-      });
+      const res = await inVolo;
       if (res.status === 401) {
         onServeAccesso?.();
         return;
@@ -370,21 +404,22 @@ export function EnigmaLevel({
       if (!res.ok || !data.corretto) {
         onFail(data.errore || "Qualcosa è andato storto. Riprova.");
         setTentativoScena((t) => t + 1); // rimonta il pomello: si può rigirare
+        await mostraLivello(livello);
         return;
       }
       if (data.prossimo) {
         segnaFrontiera(data.prossimo);
         onLivelloMassimo?.(data.prossimo);
-        const prossimo = data.prossimo;
-        apriPortale(() => mostraLivello(prossimo), true, chiudiSipario);
+        await mostraLivello(data.prossimo);
       } else {
-        segnaFrontiera(enigma.livello + 1);
-        onLivelloMassimo?.(enigma.livello);
+        segnaFrontiera(livello + 1);
+        onLivelloMassimo?.(livello);
         setStato("completato");
       }
     } catch {
       onFail("Qualcosa è andato storto. Riprova.");
       setTentativoScena((t) => t + 1);
+      await mostraLivello(livello);
     } finally {
       setVerificando(false);
     }
@@ -404,13 +439,10 @@ export function EnigmaLevel({
 
   const vista = () => {
     if (stato === "carico") {
-      /* Nero pieno, non carta vuota: il caricamento è la stanza ancora
-         al buio, in continuità col sipario della shell. */
-      return (
-        <div className="caricamento nera" role="status" aria-label="Caricamento">
-          <div className="rotella" />
-        </div>
-      );
+      /* Niente da mostrare: il sipario della shell copre tutto finché
+         la stanza non è pronta. Solo un vuoto della stessa altezza,
+         perché la carta non cambi misura al momento di scoprirla. */
+      return <div className="attesa" aria-hidden="true" />;
     }
 
     if (stato === "errore") {

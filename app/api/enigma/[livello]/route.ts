@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin, utenteCorrente, livelloRaggiunto } from "@/lib/supabase";
+import { enigmaPubblico } from "@/lib/enigma-dto";
 import { PRIMO_LIVELLO_SERVER } from "@/lib/enigmi";
 
 export const dynamic = "force-dynamic"; // mai in cache: è per-utente
@@ -7,8 +8,7 @@ export const dynamic = "force-dynamic"; // mai in cache: è per-utente
 /**
  * GET /api/enigma/7
  * Restituisce il testo dell'enigma SOLO se l'utente lo ha sbloccato.
- * Le soluzioni non compaiono in nessuna risposta: le colonne sono
- * elencate a mano, mai "select *".
+ * Le soluzioni non compaiono in nessuna risposta.
  */
 export async function GET(
   _req: NextRequest,
@@ -34,52 +34,10 @@ export async function GET(
     return NextResponse.json({ errore: "enigma non ancora sbloccato" }, { status: 403 });
   }
 
-  const admin = supabaseAdmin();
-  // soluzioni_hash serve SOLO a sapere se il livello è di scena (nessuna
-  // risposta da dare): non entra mai nella risposta, che elenca i campi
-  // a mano più sotto.
-  const { data: enigma } = await admin
-    .from("enigmi")
-    .select("livello, titolo, corpo, media_path, attivo, soluzioni_hash")
-    .eq("livello", livello)
-    .maybeSingle();
-
-  if (!enigma || !enigma.attivo) {
+  const enigma = await enigmaPubblico(supabaseAdmin(), livello, utente.id, massimo);
+  if (!enigma) {
     return NextResponse.json({ errore: "enigma non disponibile" }, { status: 404 });
   }
 
-  // quanti indizi esistono e quanti ne ha già chiesti: i TESTI no
-  const [{ count: indiziTotali }, { data: mioProgresso }] = await Promise.all([
-    admin.from("indizi").select("*", { count: "exact", head: true }).eq("livello", livello),
-    admin
-      .from("progressi")
-      .select("indizi_usati")
-      .eq("utente", utente.id)
-      .eq("livello", livello)
-      .maybeSingle(),
-  ]);
-
-  // eventuale immagine: URL firmata a scadenza breve da bucket privato
-  let media: string | null = null;
-  if (enigma.media_path) {
-    const { data: firmata } = await admin.storage
-      .from("enigmi")
-      .createSignedUrl(enigma.media_path, 300); // 5 minuti
-    media = firmata?.signedUrl ?? null;
-  }
-
-  return NextResponse.json(
-    {
-      livello: enigma.livello,
-      titolo: enigma.titolo,
-      corpo: enigma.corpo,
-      media,
-      indizi_totali: indiziTotali ?? 0,
-      indizi_usati: mioProgresso?.indizi_usati ?? 0,
-      risolto: livello <= massimo,
-      // livello di scena: si supera con un gesto, non con una risposta
-      scena: (enigma.soluzioni_hash?.length ?? 0) === 0,
-    },
-    { headers: { "Cache-Control": "no-store" } }
-  );
+  return NextResponse.json(enigma, { headers: { "Cache-Control": "no-store" } });
 }

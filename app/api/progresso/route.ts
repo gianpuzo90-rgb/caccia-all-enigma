@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, utenteCorrente, livelloRaggiunto } from "@/lib/supabase";
+import { enigmaPubblico } from "@/lib/enigma-dto";
 import { PRIMO_LIVELLO_SERVER } from "@/lib/enigmi";
 
 export const dynamic = "force-dynamic"; // mai in cache: è per-utente
 
 /**
  * GET /api/progresso
- * Dove sono: il primo livello non ancora risolto (null se non ce ne
- * sono altri) e l'ultimo che esiste. Serve al client per andare dritto
- * al punto invece di risalire la scala un livello alla volta.
- * Non contiene testi di enigmi: solo numeri.
+ * Dove sono, in un colpo solo: il livello in corso (null se non ce ne
+ * sono altri), l'ultimo che esiste e — per non costringere il client a
+ * una seconda richiesta all'avvio — l'enigma in corso già pronto.
  */
 export async function GET() {
   const utente = await utenteCorrente();
@@ -30,10 +30,12 @@ export async function GET() {
   ]);
 
   const ultimo = ultimoAttivo.data?.livello ?? PRIMO_LIVELLO_SERVER - 1;
-  const corrente = massimo + 1;
+  const corrente = massimo + 1 <= ultimo ? massimo + 1 : null;
+  const enigma =
+    corrente === null ? null : await enigmaPubblico(admin, corrente, utente.id, massimo);
 
   return NextResponse.json(
-    { corrente: corrente <= ultimo ? corrente : null, ultimo },
+    { corrente, ultimo, enigma },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

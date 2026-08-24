@@ -115,8 +115,8 @@ export function Door({
           </linearGradient>
         </defs>
 
-        {/* al buio la luce che filtra dall'arco è l'unico feedback */}
-        <path d={ARCH} fill="url(#doorlight)" opacity={variant === "buio" ? progress * 0.55 : progress} />
+        {/* al buio non filtra niente: la stanza resta nera fino in fondo */}
+        {variant !== "buio" && <path d={ARCH} fill="url(#doorlight)" opacity={progress} />}
 
         {variant !== "buio" && (
           <>
