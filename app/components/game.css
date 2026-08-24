@@ -85,6 +85,24 @@
 /* attesa: solo un vuoto della misura di una stanza, sotto il sipario */
 .attesa { min-height: 405px; }
 
+/* la rotella: unico segno di caricamento, al centro del nero */
+.rotella {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid rgba(242,234,216,0.16); border-top-color: var(--lanterna);
+  animation: rotella .8s linear infinite;
+}
+@keyframes rotella { to { transform: rotate(360deg); } }
+
+/* attesa di una risposta prima che parta l'animazione: la stanza resta
+   dietro, velata, con la rotella sopra — così si capisce che sta
+   succedendo qualcosa e non sembra che il gioco si sia piantato */
+.attesaAzione {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(6,6,10,0.66);
+  display: flex; align-items: center; justify-content: center;
+  animation: sipChiude .18s ease both;
+}
+
 .stage {
   width: 100%; max-width: 430px; flex: 1;
   display: flex; flex-direction: column; align-items: stretch;
@@ -229,8 +247,8 @@
 }
 
 .portal {
-  /* sopra l'icona del login (45), sotto il banner cookie (60) */
-  position: fixed; inset: 0; z-index: 55; pointer-events: none;
+  /* sopra il sipario nero (55), sotto il banner cookie (60) */
+  position: fixed; inset: 0; z-index: 56; pointer-events: none;
   transition: transform .68s cubic-bezier(.5,0,.75,.45), opacity .25s ease .45s;
 }
 .portal.zoomed { transform: scale(11); opacity: 0; }
@@ -242,7 +260,7 @@
    con la rotellina se c'è da caricare; la stanza nuova appare in
    dissolvenza solo quando è tutta pronta */
 .sipario {
-  position: fixed; inset: 0; z-index: 56; background: #000;
+  position: fixed; inset: 0; z-index: 55; background: #000;
   display: flex; align-items: center; justify-content: center;
   animation: sipChiude .12s ease both;
 }
@@ -250,13 +268,6 @@
 @keyframes sipChiude { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sipVia { from { opacity: 1; } to { opacity: 0; } }
 
-/* mentre il portale è aperto la carta sotto resta nera: dietro l'arco
-   c'è buio, non un'altra scena che si accavalla alla porta. I margini
-   negativi coprono anche il sigillo, che sporge dall'angolo. */
-.cardBuio {
-  position: absolute; inset: -20px -8px -8px -14px; z-index: 5;
-  background: #000; border-radius: 10px;
-}
 
 .kicker {
   font-family: 'IBM Plex Mono', monospace; font-size: 11px;
@@ -474,6 +485,7 @@
   .portal, .pglow, .leaf, .step, .toggle, .toggle .knob, .btn { transition: none; }
   .acqua, .catenella, .pompaLeva { transition: none; }
   .pompaLeva.attiva .ruota { animation: none; }
-  .sipario { animation-duration: .1s; }
+  .sipario, .attesaAzione { animation-duration: .1s; }
+  .rotella { animation-duration: 1.6s; }
   .sipario.via { animation-duration: .2s; }
 }

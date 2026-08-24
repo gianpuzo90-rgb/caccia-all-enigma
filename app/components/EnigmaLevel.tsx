@@ -72,6 +72,9 @@ type EnigmaLevelProps = {
   /** Il livello più basso non ancora risolto: la barra colora "fatti"
       i livelli sotto la frontiera. */
   onFrontiera?: (livello: number) => void;
+  /** Una risposta è in viaggio e l'animazione non è ancora partita: la
+      shell vela la stanza e ci mette sopra la rotella. */
+  onAttesa?: (attesa: boolean) => void;
   /** Cala il sipario nero della shell (chiamato dalla coreografia del
       portale verso la fine dello zoom). */
   chiudiSipario?: () => void;
@@ -94,6 +97,7 @@ export function EnigmaLevel({
   richiesta,
   onCaricamento,
   onFrontiera,
+  onAttesa,
   chiudiSipario,
   onServeAccesso,
 }: EnigmaLevelProps) {
@@ -291,6 +295,7 @@ export function EnigmaLevel({
     if (!risposta.trim()) return onFail("Scrivi una risposta.");
 
     setVerificando(true);
+    onAttesa?.(true);
     try {
       const res = await fetch("/api/verifica", {
         method: "POST",
@@ -326,6 +331,7 @@ export function EnigmaLevel({
       onFail("Qualcosa è andato storto. Riprova.");
     } finally {
       setVerificando(false);
+      onAttesa?.(false);
     }
   };
 
@@ -655,7 +661,6 @@ export function EnigmaLevel({
   return (
     <>
       {vista()}
-      {portale && <div className="cardBuio" aria-hidden="true" />}
       {overlay}
     </>
   );

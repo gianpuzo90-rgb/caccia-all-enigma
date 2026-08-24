@@ -79,6 +79,8 @@ export default function CacciaAllEnigma() {
   // il nero resta giù un minimo, per leggersi come buio e non sfarfallio
   const [attesaMinima, setAttesaMinima] = useState(false);
   const [caricamentoEnigma, setCaricamentoEnigma] = useState(false);
+  // una risposta è in viaggio e l'animazione non è ancora partita
+  const [attesaRisposta, setAttesaRisposta] = useState(false);
   // il titolo del livello mostrato da EnigmaLevel, scritto sotto la carta
   const [didascaliaEnigma, setDidascaliaEnigma] = useState<string | null>(null);
   const chiudiSipario = () => {
@@ -400,6 +402,7 @@ export default function CacciaAllEnigma() {
             }}
             richiesta={richiestaEnigma}
             onCaricamento={setCaricamentoEnigma}
+            onAttesa={setAttesaRisposta}
             onFrontiera={segnaFrontiera}
             chiudiSipario={chiudiSipario}
             onServeAccesso={() => {
@@ -565,7 +568,6 @@ export default function CacciaAllEnigma() {
           {contenuto()}
           {error && <p className="error">{error}</p>}
           {nota && <p className="nota">{nota}</p>}
-          {portal && view === "game" && <div className="cardBuio" aria-hidden="true" />}
         </div>
         {didascalia && (
           <p className={"didascalia" + (livelloEnigma === LIVELLO_SPECCHIO ? " riflessa" : "")}>
@@ -585,9 +587,20 @@ export default function CacciaAllEnigma() {
         <p className="footNote">i tuoi progressi sono legati al tuo account</p>
       </footer>
 
+      {attesaRisposta && sipario === "aperto" && (
+        <div className="attesaAzione" role="status" aria-label="Un istante">
+          <div className="rotella" />
+        </div>
+      )}
       {portal && <Portal rect={portal} lit={portal.lit} leafOpen={portal.leafOpen} zoom={portal.zoom} />}
       {sipario !== "aperto" && (
-        <div className={"sipario" + (sipario === "svelando" ? " via" : "")} aria-hidden="true" />
+        <div
+          className={"sipario" + (sipario === "svelando" ? " via" : "")}
+          role="status"
+          aria-label={caricamentoEnigma ? "Caricamento" : undefined}
+        >
+          {caricamentoEnigma && sipario === "chiuso" && <div className="rotella" />}
+        </div>
       )}
 
       {consenso === null && (

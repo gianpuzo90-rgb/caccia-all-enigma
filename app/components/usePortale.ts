@@ -23,9 +23,12 @@ export function usePortale() {
     const r = el.getBoundingClientRect();
     setPortale({ x: r.left, y: r.top, w: r.width, h: r.height, lit, leafOpen: false, zoom: false });
     scambiaContenuto();
+    /* Il buio cala subito, sotto il portale: così la porta si apre su
+       uno schermo tutto nero (con la rotella se c'è da aspettare) e non
+       su brandelli di pagina che spuntano man mano che l'arco cresce. */
+    onOscura?.();
     setTimeout(() => setPortale((p) => (p ? { ...p, leafOpen: true } : p)), 40);
     setTimeout(() => setPortale((p) => (p ? { ...p, zoom: true } : p)), 380);
-    if (onOscura) setTimeout(onOscura, 800);
     setTimeout(() => setPortale(null), 1050);
   };
 
