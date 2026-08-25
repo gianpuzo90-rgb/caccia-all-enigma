@@ -226,6 +226,23 @@ Cambiare il pepper invalida tutti gli hash esistenti: vanno riseminati.
 
 ## Test prima di aprire al pubblico
 
+**La catena idraulica va provata tutta insieme.** Lo stato del tappo del
+IV è il meccanismo che risolve il VI: i due livelli non si possono
+provare separatamente, o è coerente la catena intera o il gioco è rotto
+in un modo che a occhio non si vede. La prova esiste e si lancia così
+(server finto, non tocca il database):
+
+```
+npm run dev                                   # in un altro terminale
+npm i -D playwright && npx playwright install chromium
+node prove/idraulica.mjs
+```
+
+Percorre: IV allagato da risolvere → catenella → V → VI allagato →
+pompata a vuoto col tappo fuori → ritorno al IV a rimettere il tappo →
+pompata buona → VII → IV di nuovo allagato → ricaricamento. **Da
+rilanciare ogni volta che si toccano quei livelli o la numerazione.**
+
 Con la sessione di un utente fermo al livello 5:
 
 - `GET /api/enigma/6` -> 200 (è il prossimo)
