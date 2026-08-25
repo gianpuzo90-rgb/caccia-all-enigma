@@ -488,10 +488,13 @@ export function EnigmaLevel({
       return (
         <>
           <Sottacqua
+            key={tentativoScena}
             sceneRef={doorSceneRef}
             giaDrenata={!idr.tappoInserito}
             onTappoRimosso={() => aggiornaIdraulica({ tappoInserito: false, acquaAlQuarto: false })}
-            onSbloccato={() => setAcquaDrenata(true)}
+            // se il livello non ha una risposta da dare, il pomello lo
+            // completa; altrimenti scopre l'enigma di testo sotto
+            onSbloccato={enigma!.scena ? completaScena : () => setAcquaDrenata(true)}
           />
         </>
       );
