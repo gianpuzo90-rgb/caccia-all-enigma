@@ -1,0 +1,192 @@
+/* ==========================================================
+   Pannello di amministrazione. Stessa notte del gioco, ma
+   funzionale: densità alta, niente carta invecchiata.
+   I colori dei grafici sono quelli validati per fondo scuro
+   (separazione per daltonismo verificata, non a occhio).
+   ========================================================== */
+
+.pannello {
+  --fondo: #10131b;
+  --pannello-1: #171b26;
+  --pannello-2: #1d2230;
+  --bordo: #2a3040;
+  --testo: #eef0f4;
+  --testo-2: #9aa3b5;
+  --testo-3: #6b7488;
+  --lanterna: #e8a33d;
+
+  /* serie dei grafici: blu e arancio, coppia validata su questo fondo */
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  /* stati: sempre accompagnati da testo, mai colore da solo */
+  --buono: #0ca30c;
+  --critico: #d03b3b;
+  --avviso: #fab219;
+
+  min-height: 100vh;
+  background: var(--fondo);
+  color: var(--testo);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.pannello a { color: inherit; }
+
+/* ------------------------------ testata ------------------------------ */
+
+.aTesta {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(16,19,27,0.94);
+  border-bottom: 1px solid var(--bordo);
+  backdrop-filter: blur(8px);
+}
+.aTestaRiga {
+  max-width: 1180px; margin: 0 auto; padding: 12px 20px;
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+}
+.aMarchio {
+  font-family: 'IM Fell English', serif; font-size: 18px;
+  color: var(--testo); text-decoration: none; white-space: nowrap;
+}
+.aMarchio span { color: var(--lanterna); }
+.aNav { display: flex; gap: 4px; flex-wrap: wrap; }
+.aNav a {
+  padding: 6px 11px; border-radius: 6px; text-decoration: none;
+  color: var(--testo-2); font-size: 13px;
+}
+.aNav a:hover { background: var(--pannello-2); color: var(--testo); }
+.aNav a.attivo { background: var(--pannello-2); color: var(--lanterna); }
+.aFuga { margin-left: auto; font-size: 12px; color: var(--testo-3); text-decoration: underline; }
+
+.aCorpo { max-width: 1180px; margin: 0 auto; padding: 24px 20px 60px; }
+
+.aTitolo {
+  font-family: 'IM Fell English', serif; font-weight: 400;
+  font-size: 26px; margin: 0 0 4px; color: var(--testo);
+}
+.aSottotitolo { color: var(--testo-3); font-size: 13px; margin: 0 0 24px; }
+.aSezione { font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--testo-3); margin: 32px 0 12px; }
+
+/* ------------------------------ tessere ------------------------------ */
+
+.aTessere {
+  display: grid; gap: 12px; margin-bottom: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+}
+.aTessera {
+  background: var(--pannello-1); border: 1px solid var(--bordo);
+  border-radius: 10px; padding: 14px 16px;
+}
+.aTessera dt { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--testo-3); margin: 0; }
+.aTessera dd {
+  margin: 6px 0 0; font-size: 28px; line-height: 1.1; color: var(--testo);
+  font-variant-numeric: tabular-nums;
+}
+.aTessera .aNota { font-size: 12px; color: var(--testo-2); margin-top: 4px; }
+
+/* ------------------------------ riquadri ------------------------------ */
+
+.aRiquadro {
+  background: var(--pannello-1); border: 1px solid var(--bordo);
+  border-radius: 10px; padding: 18px; margin-bottom: 16px;
+}
+.aRiquadro h2 { font-size: 14px; margin: 0 0 2px; color: var(--testo); font-family: inherit; font-weight: 500; }
+.aRiquadro .aDida { font-size: 12px; color: var(--testo-3); margin: 0 0 16px; }
+.aColonne { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+/* ------------------------------ grafici ------------------------------ */
+
+/* barre orizzontali: estremità arrotondate di 4px, ancorate alla base */
+.aBarre { display: flex; flex-direction: column; gap: 9px; }
+.aBarra { display: grid; grid-template-columns: 132px 1fr auto; gap: 10px; align-items: center; }
+.aBarraNome { font-size: 12.5px; color: var(--testo-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aBarraNome a { text-decoration: none; }
+.aBarraNome a:hover { color: var(--lanterna); text-decoration: underline; }
+.aBarraPista { position: relative; height: 16px; background: var(--pannello-2); border-radius: 4px; overflow: hidden; }
+.aBarraPieno { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--serie-1); }
+.aBarraValore { font-size: 12.5px; color: var(--testo-2); font-variant-numeric: tabular-nums; min-width: 44px; text-align: right; }
+
+/* barra composta: due segmenti separati da 2px di superficie */
+.aImpilata { display: flex; height: 16px; border-radius: 4px; overflow: hidden; background: var(--pannello-2); gap: 2px; }
+.aImpilata i { display: block; height: 100%; }
+.aImpilata i:first-child { border-radius: 4px 0 0 4px; }
+.aImpilata i:last-child { border-radius: 0 4px 4px 0; }
+.aImpilata i:only-child { border-radius: 4px; }
+.aSegmento1 { background: var(--serie-1); }
+.aSegmento2 { background: var(--serie-2); }
+
+.aLegenda { display: flex; gap: 16px; margin: 0 0 14px; font-size: 12px; color: var(--testo-2); flex-wrap: wrap; }
+.aLegenda span { display: inline-flex; align-items: center; gap: 6px; }
+.aLegenda b { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+/* colonne del tempo */
+.aColonnine { display: flex; align-items: flex-end; gap: 2px; height: 84px; }
+.aColonnina { flex: 1; min-width: 0; background: var(--serie-1); border-radius: 4px 4px 0 0; min-height: 2px; }
+.aColonnina.vuota { background: var(--pannello-2); }
+.aAsse { display: flex; justify-content: space-between; font-size: 11px; color: var(--testo-3); margin-top: 8px; }
+
+/* ------------------------------ tabelle ------------------------------ */
+
+.aScorri { overflow-x: auto; margin: 0 -18px; padding: 0 18px; }
+.aTabella { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+.aTabella th {
+  text-align: left; font-weight: 500; font-size: 11.5px; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--testo-3);
+  padding: 0 12px 8px 0; border-bottom: 1px solid var(--bordo);
+}
+.aTabella td { padding: 9px 12px 9px 0; border-bottom: 1px solid rgba(42,48,64,0.5); color: var(--testo-2); }
+.aTabella td.forte { color: var(--testo); }
+.aTabella tr:hover td { background: rgba(29,34,48,0.5); }
+.aTabella a { color: var(--lanterna); text-decoration: none; }
+.aTabella a:hover { text-decoration: underline; }
+.aNum { font-variant-numeric: tabular-nums; text-align: right; }
+.aVuoto { color: var(--testo-3); padding: 28px 0; text-align: center; font-size: 13px; }
+
+/* ------------------------------ etichette ------------------------------ */
+
+/* stato sempre con la parola scritta: il colore non è mai l'unico segno */
+.aStato {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid currentColor; white-space: nowrap;
+}
+.aStato.buono { color: #58c95c; }
+.aStato.critico { color: #ef7f7f; }
+.aStato.avviso { color: var(--avviso); }
+.aStato.neutro { color: var(--testo-3); }
+
+.aChiaveValore { display: grid; grid-template-columns: 190px 1fr; gap: 10px 16px; font-size: 13px; }
+.aChiaveValore dt { color: var(--testo-3); }
+.aChiaveValore dd { margin: 0; color: var(--testo); word-break: break-word; }
+
+.aCitazione {
+  background: var(--pannello-2); border-left: 3px solid var(--bordo);
+  border-radius: 0 6px 6px 0; padding: 12px 14px; margin: 0;
+  font-family: 'Spectral', Georgia, serif; font-size: 14.5px;
+  color: var(--testo); white-space: pre-line;
+}
+
+/* ------------------------------ filtri ------------------------------ */
+
+.aFiltri { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.aCampo, .aScelta {
+  background: var(--pannello-1); border: 1px solid var(--bordo); border-radius: 7px;
+  color: var(--testo); padding: 8px 11px; font-family: inherit; font-size: 13px;
+}
+.aCampo { min-width: 210px; }
+.aCampo::placeholder { color: var(--testo-3); }
+.aCampo:focus, .aScelta:focus { outline: 2px solid var(--lanterna); outline-offset: 1px; }
+.aInvia {
+  background: var(--lanterna); color: #1a1206; border: none; border-radius: 7px;
+  padding: 8px 15px; font-family: inherit; font-size: 13px; cursor: pointer;
+}
+.aAzzera { color: var(--testo-3); font-size: 12px; text-decoration: underline; }
+
+.aRitorno { display: inline-block; color: var(--testo-3); font-size: 12.5px; text-decoration: none; margin-bottom: 14px; }
+.aRitorno:hover { color: var(--lanterna); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pannello * { transition: none !important; animation: none !important; }
+}
