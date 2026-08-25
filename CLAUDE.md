@@ -240,8 +240,14 @@ node prove/idraulica.mjs
 
 Percorre: IV allagato da risolvere → catenella → V → VI allagato →
 pompata a vuoto col tappo fuori → ritorno al IV a rimettere il tappo →
-pompata buona → VII → IV di nuovo allagato → ricaricamento. **Da
-rilanciare ogni volta che si toccano quei livelli o la numerazione.**
+pompata buona → VII → IV di nuovo allagato → secondo drenaggio →
+ricaricamento. **Da rilanciare ogni volta che si toccano quei livelli o
+la numerazione.**
+
+Il pomello non si controlla guardando la classe `inert`: dove l'acqua
+c'è, la prova lo gira davvero e pretende di restare dov'è; dove l'acqua
+non c'è, lo gira e pretende di passare di là. La classe è una
+conseguenza, il gesto è la regola.
 
 Con la sessione di un utente fermo al livello 5:
 

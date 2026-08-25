@@ -60,6 +60,15 @@ function verifica(cosa, reale, atteso) {
     const c = await page.locator('.acqua').evaluate(el => getComputedStyle(el).clipPath).catch(() => 'assente');
     return c.includes('inset(0px') || c === 'none';
   };
+  /* Non basta guardare la classe "inert": si prova a girarlo davvero e
+     si controlla di non essere finiti da nessuna parte. */
+  const nonGira = async () => {
+    const prima = await dove();
+    const k = page.locator('.doorKnob'); await k.focus();
+    for (let i = 0; i < 14; i++) { await page.keyboard.press('ArrowRight'); await page.waitForTimeout(20); }
+    await page.waitForTimeout(1800);
+    return (await dove()) === prima;
+  };
   const gira = async () => { const k = page.locator('.doorKnob'); await k.focus();
     for (let i = 0; i < 12; i++) { await page.keyboard.press('ArrowRight'); await page.waitForTimeout(22); }
     await page.waitForTimeout(3400); };
@@ -72,6 +81,7 @@ function verifica(cosa, reale, atteso) {
   verifica("sono al", await dove(), "Livello 4 — Lo Scarico");
   verifica("acqua piena", await acquaPiena(), true);
   verifica("pomello bloccato", (await page.locator('.doorKnob.inert').count()) === 1, true);
+  verifica("girandolo NON si passa", await nonGira(), true);
 
   console.log("2. TIRO LA CATENELLA — l'acqua se ne va di sotto");
   await page.locator('.catenella').click();
@@ -88,18 +98,20 @@ function verifica(cosa, reale, atteso) {
   console.log("4. IL VI: l'acqua è arrivata qui, e il tappo di sopra è FUORI");
   verifica("acqua piena", await acquaPiena(), true);
   verifica("pomello bloccato", (await page.locator('.doorKnob.inert').count()) === 1, true);
+  verifica("girandolo NON si passa", await nonGira(), true);
 
   console.log("5. POMPO COL TAPPO FUORI — deve essere fatica sprecata");
   await page.locator('.pompaLeva').click();
   await page.waitForTimeout(2600);
   verifica("acqua ancora lì", await acquaPiena(), true);
   verifica("pomello ancora bloccato", (await page.locator('.doorKnob.inert').count()) === 1, true);
+  verifica("girandolo NON si passa", await nonGira(), true);
   verifica("stato invariato", JSON.stringify(await stato()), JSON.stringify({ tappoInserito: false, acquaAlQuarto: false }));
 
   console.log("6. TORNO AL IV E RIMETTO IL TAPPO");
   await vaiAl(4);
   verifica("sono al", await dove(), "Livello 4 — Lo Scarico");
-  verifica("stanza asciutta", await acquaPiena(), false);
+  verifica("acqua nella stanza", await acquaPiena(), false);
   await page.locator('.catenella').click();
   await page.waitForTimeout(700);
   verifica("tappo rimesso", JSON.stringify(await stato()), JSON.stringify({ tappoInserito: true, acquaAlQuarto: false }));
@@ -109,7 +121,7 @@ function verifica(cosa, reale, atteso) {
   verifica("acqua piena all'arrivo", await acquaPiena(), true);
   await page.locator('.pompaLeva').click();
   await page.waitForTimeout(2600);
-  verifica("acqua andata via", await acquaPiena(), false);
+  verifica("acqua nella stanza", await acquaPiena(), false);
   verifica("acqua risalita al IV", JSON.stringify(await stato()), JSON.stringify({ tappoInserito: true, acquaAlQuarto: true }));
   verifica("pomello sbloccato", (await page.locator('.doorKnob.inert').count()) === 0, true);
 
@@ -121,12 +133,25 @@ function verifica(cosa, reale, atteso) {
   await vaiAl(4);
   verifica("stanza riallagata", await acquaPiena(), true);
 
-  console.log("10. RICARICO LA PAGINA — lo stato non si perde");
+  verifica("pomello di nuovo bloccato", (await page.locator('.doorKnob.inert').count()) === 1, true);
+  verifica("girandolo NON si passa", await nonGira(), true);
+
+  console.log("10. DRENO DI NUOVO — con l'acqua via il pomello deve tornare girabile");
+  await page.locator('.catenella').click();
+  await page.waitForTimeout(1400);
+  verifica("acqua nella stanza", await acquaPiena(), false);
+  verifica("pomello libero", (await page.locator('.doorKnob.inert').count()) === 0, true);
+  verifica("acqua di nuovo giù", JSON.stringify(await stato()), JSON.stringify({ tappoInserito: false, acquaAlQuarto: false }));
+  await gira();
+  verifica("girandolo si passa al V", await dove(), "Livello 5 — Al Buio");
+
+  console.log("11. RICARICO LA PAGINA — lo stato non si perde");
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(2800);
   await vaiAl(4);
-  verifica("ancora riallagata", await acquaPiena(), true);
-  verifica("stato conservato", JSON.stringify(await stato()), JSON.stringify({ tappoInserito: true, acquaAlQuarto: true }));
+  verifica("stato conservato", JSON.stringify(await stato()), JSON.stringify({ tappoInserito: false, acquaAlQuarto: false }));
+  verifica("acqua nella stanza", await acquaPiena(), false);
+  verifica("pomello ancora libero", (await page.locator('.doorKnob.inert').count()) === 0, true);
 
   console.log(`\n=== ${passati} verifiche passate, ${falliti} fallite ===`);
   await browser.close();
