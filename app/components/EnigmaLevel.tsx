@@ -490,7 +490,10 @@ export function EnigmaLevel({
           <Sottacqua
             key={tentativoScena}
             sceneRef={doorSceneRef}
-            giaDrenata={!idr.tappoInserito}
+            /* Finché il livello non è superato la stanza è SEMPRE piena:
+               il gesto va fatto per intero. Ricordarsi che il tappo era
+               già stato tolto lo renderebbe saltabile — e chi ha giocato
+               prima se lo troverebbe spalancato senza aver fatto niente. */
             onTappoRimosso={() => aggiornaIdraulica({ tappoInserito: false, acquaAlQuarto: false })}
             // se il livello non ha una risposta da dare, il pomello lo
             // completa; altrimenti scopre l'enigma di testo sotto
