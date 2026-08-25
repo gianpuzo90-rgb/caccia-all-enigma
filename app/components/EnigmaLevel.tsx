@@ -649,9 +649,13 @@ export function EnigmaLevel({
             <button className="btn" onClick={invia} disabled={verificando}>
               {verificando ? "Un istante…" : "Consegna la risposta"}
             </button>
-            <button className="btnGhost" onClick={chiediIndizio} disabled={chiedendoIndizio || !puoIndizio}>
-              {chiedendoIndizio ? "Un istante…" : puoIndizio ? "Chiedi un indizio" : "Nessun altro indizio"}
-            </button>
+            {/* niente bottone se per quel livello non è stato scritto
+                nessun indizio: meglio l'assenza di un pulsante spento */}
+            {enigma!.indizi_totali > 0 && (
+              <button className="btnGhost" onClick={chiediIndizio} disabled={chiedendoIndizio || !puoIndizio}>
+                {chiedendoIndizio ? "Un istante…" : puoIndizio ? "Chiedi un indizio" : "Nessun altro indizio"}
+              </button>
+            )}
           </>
         )}
       </>
