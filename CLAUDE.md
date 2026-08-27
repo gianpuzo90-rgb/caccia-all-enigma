@@ -136,8 +136,19 @@ del web diventa gioco. Restano client-side perché non contengono segreti.
   gesto che esiste solo per chi ha già raggiunto lo Specchio. Il
   cancello visibile sta in `cae:frontiera` (localStorage), ma a
   decidere davvero resta il server, che rifiuta i livelli non sbloccati.
-- **VIII — La Soglia**: segnaposto, un livello di scena con la sola
-  porta. Diventa un enigma vero quando gli si semina una risposta.
+- **VIII — Il Perno**: il pomello è saldato all'anta e non gira. Gira
+  la **porta intera**, presa per il pomello o per il legno, spazzata in
+  un arco largo; il vano di pietra resta fermo. A giro finito si
+  spalanca **storta**, coricata di tre quarti dentro il vano dritto.
+  Non c'è una riga di istruzioni: lo dicono l'incisione sul pomello (il
+  vano dritto, l'anta già girata dentro, e sull'anta il suo pomellino
+  nel punto esatto in cui sta quello vero) e il comportamento del
+  legno. Il gesto abituale — il mulinello stretto sul pomello — non
+  porta da nessuna parte, e non ci porta nemmeno insistendo: l'anta è
+  pesante e, mollata sotto i 40°, torna dritta da sola. Senza quel
+  ritorno a molla ogni giro di mulinello ne rubava qualche grado e la
+  porta si arrampicava a scatti: il gesto sbagliato avrebbe vinto lo
+  stesso, solo più lentamente.
 - Le scene si presentano senza testi introduttivi: il titolo del
   livello ("Livello 5 — Al Buio") sta **sotto** la carta, come la
   targhetta di un quadro, così resta leggibile anche quando la stanza
@@ -248,6 +259,22 @@ Il pomello non si controlla guardando la classe `inert`: dove l'acqua
 c'è, la prova lo gira davvero e pretende di restare dov'è; dove l'acqua
 non c'è, lo gira e pretende di passare di là. La classe è una
 conseguenza, il gesto è la regola.
+
+**Il Perno ha la sua prova**, per lo stesso motivo: il livello sta in
+piedi su un fatto geometrico — l'angolo si misura dal centro della
+porta, non del pomello — che leggendo il codice non si vede. La prova
+fa i due gesti veri e guarda dove si finisce.
+
+```
+node prove/perno.mjs
+```
+
+Percorre: mulinello stretto sul pomello (il gesto che funziona in tutti
+gli altri livelli) → non si passa, e l'anta torna dritta → 27 giri di
+mulinello di fila → ancora non si passa, che è la verifica che conta:
+un gesto sbagliato che ruba gradi vincerebbe comunque, prima o poi →
+porta spazzata in un arco largo → si passa. **Da rilanciare ogni volta
+che si tocca `Door.tsx`.**
 
 Con la sessione di un utente fermo al livello 5:
 

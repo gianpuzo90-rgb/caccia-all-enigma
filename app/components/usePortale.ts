@@ -13,7 +13,12 @@ export function usePortale() {
   const sceneRef = useRef<HTMLDivElement | null>(null);
   const [portale, setPortale] = useState<PortalRect | null>(null);
 
-  const apri = (scambiaContenuto: () => void, lit = true, onOscura?: () => void) => {
+  const apri = (
+    scambiaContenuto: () => void,
+    lit = true,
+    onOscura?: () => void,
+    inclinazione = 0
+  ) => {
     const el = sceneRef.current;
     if (!el) {
       scambiaContenuto();
@@ -21,7 +26,16 @@ export function usePortale() {
       return;
     }
     const r = el.getBoundingClientRect();
-    setPortale({ x: r.left, y: r.top, w: r.width, h: r.height, lit, leafOpen: false, zoom: false });
+    setPortale({
+      x: r.left,
+      y: r.top,
+      w: r.width,
+      h: r.height,
+      lit,
+      leafOpen: false,
+      zoom: false,
+      inclinazione,
+    });
     scambiaContenuto();
     /* Il buio cala subito, sotto il portale: così la porta si apre su
        uno schermo tutto nero (con la rotella se c'è da aspettare) e non

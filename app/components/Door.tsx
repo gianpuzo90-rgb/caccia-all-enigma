@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { ARCH } from "./utils";
 
-type DoorVariant = "ottone" | "biscotto" | "serratura" | "scarico" | "buio";
+type DoorVariant = "ottone" | "biscotto" | "serratura" | "scarico" | "buio" | "perno";
 
 type DoorProps = {
   onComplete: () => void;
@@ -35,11 +35,34 @@ export function Door({
   const doneRef = useRef(false);
   const [angle, setAngle] = useState(0);
   const [stuck, setStuck] = useState(false);
+  /* Al Perno l'anta è pesante e torna giù da sola: mollata a metà di
+     un accenno di giro, si riporta a zero. Serve a due cose. Toglie il
+     cricchetto — girando in tondo sul pomello l'anta si arrampicava a
+     scatti e restava storta senza che nessuno l'avesse girata — e fa
+     vedere a occhio che il legno ha gioco ma non va da nessuna parte
+     finché non lo si spazza per davvero. */
+  const [rientro, setRientro] = useState(false);
+
+  /* Il Perno: il pomello è saldato all'anta e non gira per conto suo.
+     Gira tutta la porta, e il pomello è il piolo per cui la si prende. */
+  const perno = variant === "perno";
+  /* Sotto questi gradi il giro non è un giro: è un dito appoggiato. */
+  const IMPEGNO = 40;
+
+  /* Quanto dito è passato in questa presa: serve solo al Perno, per
+     accorgersi del mulinello stretto sul pomello (tanto movimento,
+     nessun giro) e far traballare l'anta invece di restare muta. */
+  const gestoRef = useRef({ percorso: 0, partenza: 0, x: 0, y: 0 });
 
   const pointerAngle = (e: React.PointerEvent) => {
-    const r = knobRef.current!.getBoundingClientRect();
+    /* Al Perno l'angolo si misura attorno al centro della PORTA, non
+       del pomello. È la geometria a insegnare il gesto: un mulinello
+       stretto sul pomello, visto da quel centro, è quasi un
+       andirivieni e infatti non porta da nessuna parte — la porta va
+       spazzata in un arco largo. */
+    const r = (perno ? sceneRef.current! : knobRef.current!).getBoundingClientRect();
     const cx = r.left + r.width / 2;
-    const cy = r.top + r.height / 2;
+    const cy = r.top + r.height * (perno ? 0.578 : 0.5);
     return (Math.atan2(e.clientY - cy, e.clientX - cx) * 180) / Math.PI;
   };
 
@@ -79,8 +102,9 @@ export function Door({
       onInert?.();
       return;
     }
-    knobRef.current!.setPointerCapture(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
     dragRef.current = { active: true, last: pointerAngle(e) };
+    gestoRef.current = { percorso: 0, partenza: angleRef.current, x: e.clientX, y: e.clientY };
   };
 
   const onMove = (e: React.PointerEvent) => {
@@ -90,17 +114,43 @@ export function Door({
     if (d > 180) d -= 360;
     if (d < -180) d += 360;
     dragRef.current.last = a;
+    const g = gestoRef.current;
+    g.percorso += Math.hypot(e.clientX - g.x, e.clientY - g.y);
+    g.x = e.clientX;
+    g.y = e.clientY;
     apply(d);
   };
 
   const stop = () => {
+    if (!dragRef.current.active) return;
     dragRef.current.active = false;
+    if (!perno || doneRef.current) return;
+    /* Mano tolta senza aver girato niente: l'anta si rimette dritta. */
+    if (angleRef.current > 0 && angleRef.current < IMPEGNO) {
+      angleRef.current = 0;
+      setRientro(true);
+      setAngle(0);
+      setTimeout(() => setRientro(false), 460);
+    }
+    /* Dito mosso parecchio e anta praticamente ferma: è il mulinello
+       stretto sul pomello, il gesto che funziona in tutti gli altri
+       livelli. Qui il legno traballa e basta. */
+    if (gestoRef.current.percorso > 70 && angleRef.current < 2) setStuck(true);
   };
 
   const progress = Math.abs(angle) / TARGET;
 
   return (
-    <div className="doorScene" ref={sceneRef}>
+    <div
+      className={
+        "doorScene" +
+        (perno ? " perno" : "") +
+        (perno && stuck ? " scossa" : "") +
+        (rientro ? " rientro" : "")
+      }
+      ref={sceneRef}
+      onAnimationEnd={perno ? () => setStuck(false) : undefined}
+    >
       <svg className="doorSvg" viewBox="0 0 240 320" aria-hidden="true">
         <defs>
           <radialGradient id="doorlight" cx="50%" cy="42%" r="62%">
@@ -120,6 +170,9 @@ export function Door({
 
         {variant !== "buio" && (
           <>
+            {/* Il vano di pietra non si muove mai: gira l'anta, e solo
+                al Perno. Altrove questo strato sta a zero gradi. */}
+            <g className="anta" style={{ transform: `rotate(${perno ? angle : 0}deg)` }}>
             <g className="leaf">
               <path d={ARCH} fill="url(#wood)" stroke="#241b10" strokeWidth="3" />
               <path d="M97 74 L97 300" stroke="#241b10" strokeWidth="1.5" opacity="0.45" />
@@ -128,6 +181,7 @@ export function Door({
               <circle cx="178" cy="132" r="2.6" fill="#241b10" opacity="0.7" />
               <circle cx="62" cy="288" r="2.6" fill="#241b10" opacity="0.7" />
               <circle cx="178" cy="288" r="2.6" fill="#241b10" opacity="0.7" />
+            </g>
             </g>
 
             <path
@@ -143,14 +197,31 @@ export function Door({
         )}
       </svg>
 
+      {/* Al Perno si può prendere anche il legno, non solo il piolo:
+          chi capisce che è la porta a girare non deve poi indovinare
+          pure dove metterci le mani. */}
+      {perno && (
+        <div
+          className="doorPresa"
+          aria-hidden="true"
+          onPointerDown={onDown}
+          onPointerMove={onMove}
+          onPointerUp={stop}
+          onPointerCancel={stop}
+        />
+      )}
+
+      <div className={perno ? "doorGira" : "doorFermo"} style={{ transform: `rotate(${perno ? angle : 0}deg)` }}>
       <div
         ref={knobRef}
-        className={"doorKnob" + (inert ? " inert" : "") + (stuck ? " stuck" : "")}
+        className={"doorKnob" + (inert ? " inert" : "") + (stuck && !perno ? " stuck" : "")}
         role="button"
-        aria-label={inert ? inertLabel : "Gira il pomello in senso orario"}
+        aria-label={inert ? inertLabel : perno ? "Gira la porta in senso orario" : "Gira il pomello in senso orario"}
         aria-disabled={inert}
         tabIndex={0}
-        style={{ transform: `translate(-50%, -50%) rotate(${angle}deg)` }}
+        /* al Perno il pomello non gira su sé stesso: è saldato all'anta
+           e va in giro con lei, che ruota lo strato qui sopra */
+        style={{ transform: `translate(-50%, -50%) rotate(${perno ? 0 : angle}deg)` }}
         onPointerDown={onDown}
         onPointerMove={onMove}
         onPointerUp={stop}
@@ -214,6 +285,41 @@ export function Door({
               <path d="M4.5 20.5 C4.5 15.5 8 13.8 12 13.8 C16 13.8 19.5 15.5 19.5 20.5" />
             </g>
           </svg>
+        ) : variant === "perno" ? (
+          /* L'incisione è un modello in scala di quello che hai davanti:
+             il vano dritto, l'anta già girata dentro, e sull'anta il
+             suo pomellino nel punto esatto in cui sta quello vero. Non
+             è il disegno di una porta: è il disegno della soluzione. */
+          <svg viewBox="0 0 68 68" width="34" height="34">
+            <defs>
+              <radialGradient id="brassPerno" cx="38%" cy="32%" r="78%">
+                <stop offset="0%" stopColor="#dcbc7c" />
+                <stop offset="55%" stopColor="#a87f42" />
+                <stop offset="100%" stopColor="#6b4f26" />
+              </radialGradient>
+            </defs>
+            <circle cx="34" cy="34" r="27" fill="#1b140c" opacity="0.4" />
+            <circle cx="34" cy="34" r="23" fill="url(#brassPerno)" stroke="#4a3820" strokeWidth="2" />
+            {/* il vano: stipiti e soglia, dritti e fermi. Niente arco in
+                cima, o si impasterebbe con quello dell'anta girata */}
+            <g
+              transform="translate(19 10.875) scale(0.125)"
+              fill="none"
+              stroke="#150f08"
+              strokeWidth="13"
+              strokeLinecap="round"
+              opacity="0.42"
+            >
+              <path d="M50 300 L50 150" />
+              <path d="M190 300 L190 150" />
+              <path d="M42 300 L198 300" />
+            </g>
+            {/* l'anta: storta, e col pomello che se n'è andato con lei */}
+            <g transform="rotate(28 34 34) translate(19 10.875) scale(0.125)" stroke="#150f08">
+              <path d={ARCH} fill="none" strokeWidth="15" strokeLinejoin="round" />
+              <circle cx="168" cy="185" r="17" fill="#150f08" stroke="none" />
+            </g>
+          </svg>
         ) : variant === "scarico" ? (
           <svg viewBox="0 0 68 68" width="34" height="34">
             <defs>
@@ -250,6 +356,7 @@ export function Door({
             <circle cx="34" cy="34" r="23" fill="url(#brass)" stroke="#4a3820" strokeWidth="2" />
           </svg>
         )}
+      </div>
       </div>
     </div>
   );

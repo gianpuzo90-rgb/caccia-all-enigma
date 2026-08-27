@@ -602,7 +602,15 @@ export default function CacciaAllEnigma() {
           <div className="rotella" />
         </div>
       )}
-      {portal && <Portal rect={portal} lit={portal.lit} leafOpen={portal.leafOpen} zoom={portal.zoom} />}
+      {portal && (
+        <Portal
+          rect={portal}
+          lit={portal.lit}
+          leafOpen={portal.leafOpen}
+          zoom={portal.zoom}
+          inclinazione={portal.inclinazione}
+        />
+      )}
       {sipario !== "aperto" && (
         <div
           className={"sipario" + (sipario === "svelando" ? " via" : "")}

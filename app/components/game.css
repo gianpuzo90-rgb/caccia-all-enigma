@@ -228,6 +228,38 @@
 .leaf { transform-box: fill-box; transform-origin: 0% 50%; transition: transform .58s ease, opacity .58s ease; }
 .leaf.open { transform: scaleX(0.08); opacity: 0.3; }
 
+/* --------- Livello VIII: Il Perno --------- */
+/* Il pomello è saldato all'anta. Gira la porta, e girando esce dal
+   suo riquadro: senza overflow visibile la si vedrebbe tranciata. */
+.doorScene.perno, .doorScene.perno .doorSvg { overflow: visible; }
+.anta { transform-box: fill-box; transform-origin: 50% 50%; }
+/* lo strato che porta a spasso il pomello: stesso centro dell'anta
+   (120,185 su 240x320), così piolo e legno girano insieme */
+.doorGira {
+  position: absolute; inset: 0; transform-origin: 50% 57.8%; pointer-events: none;
+}
+.doorGira .doorKnob { pointer-events: auto; }
+.doorFermo { display: contents; }
+/* la presa sul legno: l'arco, invisibile, sotto al pomello */
+.doorPresa {
+  position: absolute; left: 20.8%; top: 21.9%; width: 58.4%; height: 71.9%;
+  touch-action: none; cursor: grab; background: transparent;
+}
+.doorPresa:active { cursor: grabbing; }
+/* mollata a metà di un accenno di giro, l'anta si rimette dritta da
+   sola: è pesante, e non è un dito appoggiato a spostarla */
+.doorScene.perno.rientro .anta,
+.doorScene.perno.rientro .doorGira { transition: transform .44s cubic-bezier(.34,1.28,.64,1); }
+
+/* mulinello sul pomello e nessun giro: l'anta traballa, il vano no */
+.doorScene.perno.scossa .anta,
+.doorScene.perno.scossa .doorGira { animation: antaScossa .5s ease; }
+@keyframes antaScossa {
+  0%, 100% { transform: rotate(0deg); }
+  30%      { transform: rotate(-2.2deg); }
+  65%      { transform: rotate(1.8deg); }
+}
+
 .doorKnob {
   position: absolute; left: 70%; top: 57.8%;
   width: 48px; height: 48px;

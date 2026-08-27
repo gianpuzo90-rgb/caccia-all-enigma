@@ -17,6 +17,8 @@ import {
   LIVELLO_BUIO,
   LIVELLO_POMPA,
   LIVELLO_SPECCHIO,
+  LIVELLO_PERNO,
+  INCLINAZIONE_PERNO,
   leggiLocale,
   didascaliaLivello,
   scriviLocale,
@@ -376,7 +378,7 @@ export function EnigmaLevel({
      senza risposta perché non hanno soluzioni seminate; l'avanzamento
      resta comunque scritto da lui. */
   const [tentativoScena, setTentativoScena] = useState(0);
-  const completaScena = () => {
+  const completaScena = (inclinazione = 0) => {
     if (!enigma || verificando) return;
     onClearError();
     setVerificando(true);
@@ -395,7 +397,8 @@ export function EnigmaLevel({
         void concludiScena(livello, inVolo);
       },
       true,
-      chiudiSipario
+      chiudiSipario,
+      inclinazione
     );
   };
 
@@ -438,7 +441,13 @@ export function EnigmaLevel({
   const overlay =
     portale && typeof document !== "undefined"
       ? createPortal(
-          <Portal rect={portale} lit={portale.lit} leafOpen={portale.leafOpen} zoom={portale.zoom} />,
+          <Portal
+            rect={portale}
+            lit={portale.lit}
+            leafOpen={portale.leafOpen}
+            zoom={portale.zoom}
+            inclinazione={portale.inclinazione}
+          />,
           document.body
         )
       : null;
@@ -583,6 +592,30 @@ export function EnigmaLevel({
        — nemmeno da risolto. Si passa sempre dall'originale. */
     if (enigma!.livello === LIVELLO_SPECCHIO) {
       return <Specchio sceneRef={doorSceneRef} />;
+    }
+
+    /* Il Perno: il pomello non gira, gira l'anta. Nient'altro cambia —
+       nessun testo, nessun oggetto in più: l'incisione sul pomello e
+       il traballio del legno bastano a dire come si fa. */
+    if (enigma!.livello === LIVELLO_PERNO) {
+      return (
+        <Door
+          key={tentativoScena}
+          sceneRef={doorSceneRef}
+          variant="perno"
+          onComplete={
+            enigma!.risolto
+              ? () =>
+                  apriPortale(
+                    () => avanzaDaRivisita(LIVELLO_PERNO),
+                    true,
+                    chiudiSipario,
+                    INCLINAZIONE_PERNO
+                  )
+              : () => completaScena(INCLINAZIONE_PERNO)
+          }
+        />
+      );
     }
 
     /* Livello di scena senza una stanza su misura: una porta e basta.

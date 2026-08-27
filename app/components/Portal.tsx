@@ -3,14 +3,14 @@
 import { ARCH } from "./utils";
 import type { PortalRect } from "./types";
 
-type PortalProps = Pick<PortalRect, "lit" | "leafOpen"> & {
+type PortalProps = Pick<PortalRect, "lit" | "leafOpen" | "inclinazione"> & {
   rect: PortalRect;
   zoom: boolean;
 };
 
 /* ---------- Portale: la porta si apre SULLA pagina successiva ---------- */
 
-export function Portal({ rect, lit, leafOpen, zoom }: PortalProps) {
+export function Portal({ rect, lit, leafOpen, zoom, inclinazione }: PortalProps) {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const sx = rect.w / 240;
@@ -53,6 +53,10 @@ export function Portal({ rect, lit, leafOpen, zoom }: PortalProps) {
         <g transform={`translate(${rect.x} ${rect.y}) scale(${sx} ${sy})`}>
           {lit && <path d={ARCH} fill="url(#plight)" className={"pglow" + (leafOpen ? " off" : "")} />}
 
+          {/* Il vano resta dritto: è l'anta che gira. Al Perno arriva
+              qui girata di tre quarti e si spalanca storta, perché
+              così l'ha lasciata il giocatore. */}
+          <g className="anta" style={{ transform: `rotate(${inclinazione}deg)` }}>
           <g className={"leaf" + (leafOpen ? " open" : "")}>
             <path d={ARCH} fill="url(#pwood)" stroke="#241b10" strokeWidth="3" />
             <path d="M97 74 L97 300" stroke="#241b10" strokeWidth="1.5" opacity="0.45" />
@@ -63,6 +67,7 @@ export function Portal({ rect, lit, leafOpen, zoom }: PortalProps) {
             <circle cx="178" cy="288" r="2.6" fill="#241b10" opacity="0.7" />
             <circle cx="168" cy="185" r="9" fill="#1b140c" opacity="0.4" />
             <circle cx="168" cy="185" r="7.5" fill="#a87f42" stroke="#4a3820" strokeWidth="1.5" />
+          </g>
           </g>
 
           <path

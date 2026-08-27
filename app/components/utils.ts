@@ -27,6 +27,10 @@ export const LIVELLO_POMPA = 6;
    supera tornando al II e girando quel pomello al contrario. */
 export const LIVELLO_SPECCHIO = 7;
 export const LIVELLO_RIFLESSO = 2;
+/* Il Perno: il pomello è saldato all'anta e non gira. Gira la porta
+   intera, e a giro finito si spalanca storta — di quei gradi lì. */
+export const LIVELLO_PERNO = 8;
+export const INCLINAZIONE_PERNO = 270;
 
 /** La didascalia sotto la carta. Numeri arabi, come nella barra. */
 export const didascaliaLivello = (livello: number, titolo: string) =>

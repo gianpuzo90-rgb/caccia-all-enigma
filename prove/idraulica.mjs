@@ -32,7 +32,8 @@ let passati = 0, falliti = 0;
 function verifica(cosa, reale, atteso) {
   const ok = JSON.stringify(reale) === JSON.stringify(atteso);
   console.log(`   ${ok ? "OK  " : "NO  "} ${cosa}: ${reale}${ok ? "" : `  (atteso ${atteso})`}`);
-  ok ? passati++ : falliti++;
+  if (ok) passati++;
+  else falliti++;
 }
 
 (async () => {

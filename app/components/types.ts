@@ -21,6 +21,9 @@ export type PortalRect = {
   lit: boolean;
   leafOpen: boolean;
   zoom: boolean;
+  /** Gradi di cui l'anta è girata quando si spalanca. Zero ovunque
+      tranne che al Perno, dove la porta si apre storta. */
+  inclinazione: number;
 };
 
 export type EnigmaDTO = {
