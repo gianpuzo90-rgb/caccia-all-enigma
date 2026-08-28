@@ -2,6 +2,7 @@
 
 import { useState, type RefObject } from "react";
 import { Door } from "./Door";
+import { Tappo } from "./Tappo";
 
 type SottacquaProps = {
   sceneRef: RefObject<HTMLDivElement | null>;
@@ -43,21 +44,15 @@ export function Sottacqua({ sceneRef, giaDrenata = false, onTappoRimosso, onSblo
         <div className="acquaCorpo" />
       </div>
 
-      <button
-        type="button"
-        className={"catenella" + (tirata ? " tirata" : "")}
-        onClick={tiraCatenella}
-        disabled={tirata}
-        aria-label="Tira la catenella per far defluire l'acqua"
-      >
-        <svg viewBox="0 0 40 52" width="26" height="34">
-          <line
-            x1="20" y1="0" x2="20" y2="38"
-            stroke="#8b96a3" strokeWidth="2.4" strokeDasharray="1 6" strokeLinecap="round"
-          />
-          <rect x="7" y="38" width="26" height="6" rx="3" fill="#241b10" />
-        </svg>
-      </button>
+      {/* Sfilato, il tappo resta lì a vista, coricato accanto allo
+          scarico: sparire di colpo lo faceva sembrare mai esistito, e
+          poi al VI bisogna ricordarsi di essere stati proprio noi a
+          toglierlo. Rimetterlo è roba della stanza rivisitata. */}
+      <Tappo
+        inserito={!tirata}
+        onClick={tirata ? undefined : tiraCatenella}
+        etichetta={tirata ? "Il tappo è fuori dallo scarico" : "Tira la catenella per far defluire l'acqua"}
+      />
     </div>
   );
 }

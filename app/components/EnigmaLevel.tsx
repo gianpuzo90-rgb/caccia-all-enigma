@@ -378,7 +378,7 @@ export function EnigmaLevel({
      senza risposta perché non hanno soluzioni seminate; l'avanzamento
      resta comunque scritto da lui. */
   const [tentativoScena, setTentativoScena] = useState(0);
-  const completaScena = (inclinazione = 0) => {
+  const completaScena = (extra: { inclinazione?: number; buio?: boolean } = {}) => {
     if (!enigma || verificando) return;
     onClearError();
     setVerificando(true);
@@ -398,7 +398,7 @@ export function EnigmaLevel({
       },
       true,
       chiudiSipario,
-      inclinazione
+      extra
     );
   };
 
@@ -447,6 +447,7 @@ export function EnigmaLevel({
             leafOpen={portale.leafOpen}
             zoom={portale.zoom}
             inclinazione={portale.inclinazione}
+            buio={portale.buio}
           />,
           document.body
         )
@@ -524,8 +525,8 @@ export function EnigmaLevel({
             variant="buio"
             onComplete={
               enigma!.risolto
-                ? () => apriPortale(() => avanzaDaRivisita(LIVELLO_BUIO), true, chiudiSipario)
-                : completaScena
+                ? () => apriPortale(() => avanzaDaRivisita(LIVELLO_BUIO), true, chiudiSipario, { buio: true })
+                : () => completaScena({ buio: true })
             }
           />
         </div>
@@ -606,13 +607,10 @@ export function EnigmaLevel({
           onComplete={
             enigma!.risolto
               ? () =>
-                  apriPortale(
-                    () => avanzaDaRivisita(LIVELLO_PERNO),
-                    true,
-                    chiudiSipario,
-                    INCLINAZIONE_PERNO
-                  )
-              : () => completaScena(INCLINAZIONE_PERNO)
+                  apriPortale(() => avanzaDaRivisita(LIVELLO_PERNO), true, chiudiSipario, {
+                    inclinazione: INCLINAZIONE_PERNO,
+                  })
+              : () => completaScena({ inclinazione: INCLINAZIONE_PERNO })
           }
         />
       );

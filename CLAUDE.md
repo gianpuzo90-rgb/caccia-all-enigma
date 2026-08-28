@@ -108,9 +108,17 @@ del web diventa gioco. Restano client-side perché non contengono segreti.
   registrato; se lo forzi, l'icona in alto pulsa.
 - **IV in poi**: enigmi veri, serviti dal server. Il IV ("Lo
   Scarico") è allagato e si drena tirando la catenella del tappo.
+  Sfilato, il tappo **resta lì a vista**, coricato accanto allo
+  scarico: farlo sparire lo faceva sembrare mai esistito, e al VI
+  bisogna ricordarsi di essere stati proprio noi a toglierlo.
   Il V ("Al Buio") è schermo nero: il pomello è invisibile ma
-  funziona al solito posto — la prova è trovarlo a memoria; girandolo
-  filtra la luce dall'arco. Non ha risposta: è un *livello di scena*.
+  funziona al solito posto — la prova è trovarlo a memoria. Lì il giro
+  che serve è **mezzo** (150° invece di 270°): al buio non si vede
+  niente muoversi, e un giro lungo diventa un mulinare senza sapere
+  se sta succedendo qualcosa. All'apertura non si materializza nessuna
+  porta di legno: l'anta del portale è nera come il resto e si vede
+  solo la luce allargarsi nell'arco. Non ha risposta: è un *livello di
+  scena*.
 
   Un livello di scena è semplicemente una riga di `enigmi` **senza
   `soluzioni_hash`**: si supera con il gesto della stanza invece che
@@ -136,19 +144,30 @@ del web diventa gioco. Restano client-side perché non contengono segreti.
   gesto che esiste solo per chi ha già raggiunto lo Specchio. Il
   cancello visibile sta in `cae:frontiera` (localStorage), ma a
   decidere davvero resta il server, che rifiuta i livelli non sbloccati.
-- **VIII — Il Perno**: il pomello è saldato all'anta e non gira. Gira
-  la **porta intera**, presa per il pomello o per il legno, spazzata in
-  un arco largo; il vano di pietra resta fermo. A giro finito si
-  spalanca **storta**, coricata di tre quarti dentro il vano dritto.
-  Non c'è una riga di istruzioni: lo dicono l'incisione sul pomello (il
-  vano dritto, l'anta già girata dentro, e sull'anta il suo pomellino
-  nel punto esatto in cui sta quello vero) e il comportamento del
-  legno. Il gesto abituale — il mulinello stretto sul pomello — non
-  porta da nessuna parte, e non ci porta nemmeno insistendo: l'anta è
-  pesante e, mollata sotto i 40°, torna dritta da sola. Senza quel
-  ritorno a molla ogni giro di mulinello ne rubava qualche grado e la
-  porta si arrampicava a scatti: il gesto sbagliato avrebbe vinto lo
-  stesso, solo più lentamente.
+- **VIII — Il Perno**: qui non gira il pomello e non gira la porta.
+  Gira la **soglia di pietra**, spazzata in un arco largo attorno a
+  un'anta che resta ferma, e a giro finito il vano è **storto**
+  attorno a una porta dritta. Tre cose lo tengono in piedi, e sono
+  tutte e tre necessarie:
+  - **La pietra si prende solo sulla pietra.** La presa è il tratto
+    stesso della soglia, ingrassato fino allo spessore di un dito
+    (`.sogliaPresa`, `pointer-events: stroke`). Dentro l'arco non si
+    prende niente.
+  - **E non la si prende vicino al pomello** (62px). Senza quel raggio
+    proibito bastava appoggiare il dito dove lo si appoggia in tutti
+    gli altri livelli e spazzare: il livello tornava a essere un
+    pomello con più strada da fare. Vale anche per la tastiera — il
+    fuoco per girare sta sulla soglia, e le frecce sul pomello lo
+    fanno solo traballare.
+  - **La soglia è pesante e torna dritta da sola** se mollata sotto i
+    40°. Senza quel ritorno a molla ogni strappetto ne rubava qualche
+    grado e la pietra si arrampicava a scatti: il gesto sbagliato
+    avrebbe vinto lo stesso, solo più lentamente.
+
+  Nessuna istruzione scritta: lo dice l'incisione sul pomello — l'anta
+  dritta col suo pomellino nel punto esatto in cui sta quello vero, e
+  attorno la soglia già girata. Non è il disegno di una porta: è il
+  disegno della soluzione, e dice quale dei due pezzi si muove.
 - Le scene si presentano senza testi introduttivi: il titolo del
   livello ("Livello 5 — Al Buio") sta **sotto** la carta, come la
   targhetta di un quadro, così resta leggibile anche quando la stanza
@@ -270,11 +289,12 @@ node prove/perno.mjs
 ```
 
 Percorre: mulinello stretto sul pomello (il gesto che funziona in tutti
-gli altri livelli) → non si passa, e l'anta torna dritta → 27 giri di
-mulinello di fila → ancora non si passa, che è la verifica che conta:
-un gesto sbagliato che ruba gradi vincerebbe comunque, prima o poi →
-porta spazzata in un arco largo → si passa. **Da rilanciare ogni volta
-che si tocca `Door.tsx`.**
+gli altri livelli) → non si passa → 27 giri di mulinello di fila →
+ancora non si passa, che è la verifica contro il cricchetto: un gesto
+sbagliato che ruba gradi vincerebbe comunque, prima o poi → **arco
+largo ma partendo dal pomello** → non gira niente, ed è la verifica del
+raggio proibito → arco largo preso sullo stipite → si passa. **Da
+rilanciare ogni volta che si tocca `Door.tsx`.**
 
 Con la sessione di un utente fermo al livello 5:
 

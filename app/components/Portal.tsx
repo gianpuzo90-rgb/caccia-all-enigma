@@ -3,14 +3,14 @@
 import { ARCH } from "./utils";
 import type { PortalRect } from "./types";
 
-type PortalProps = Pick<PortalRect, "lit" | "leafOpen" | "inclinazione"> & {
+type PortalProps = Pick<PortalRect, "lit" | "leafOpen" | "inclinazione" | "buio"> & {
   rect: PortalRect;
   zoom: boolean;
 };
 
 /* ---------- Portale: la porta si apre SULLA pagina successiva ---------- */
 
-export function Portal({ rect, lit, leafOpen, zoom, inclinazione }: PortalProps) {
+export function Portal({ rect, lit, leafOpen, zoom, inclinazione, buio }: PortalProps) {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const sx = rect.w / 240;
@@ -53,32 +53,46 @@ export function Portal({ rect, lit, leafOpen, zoom, inclinazione }: PortalProps)
         <g transform={`translate(${rect.x} ${rect.y}) scale(${sx} ${sy})`}>
           {lit && <path d={ARCH} fill="url(#plight)" className={"pglow" + (leafOpen ? " off" : "")} />}
 
-          {/* Il vano resta dritto: è l'anta che gira. Al Perno arriva
-              qui girata di tre quarti e si spalanca storta, perché
-              così l'ha lasciata il giocatore. */}
-          <g className="anta" style={{ transform: `rotate(${inclinazione}deg)` }}>
+          {/* Al Buio non si materializza nessuna porta: il legno è nero
+              come tutto il resto, e ad aprirsi si vede solo la luce
+              allargarsi nell'arco. Era quello a fare uno strano
+              effetto — una porta di legno che spuntava dal niente. */}
           <g className={"leaf" + (leafOpen ? " open" : "")}>
-            <path d={ARCH} fill="url(#pwood)" stroke="#241b10" strokeWidth="3" />
-            <path d="M97 74 L97 300" stroke="#241b10" strokeWidth="1.5" opacity="0.45" />
-            <path d="M143 74 L143 300" stroke="#241b10" strokeWidth="1.5" opacity="0.45" />
-            <circle cx="62" cy="132" r="2.6" fill="#241b10" opacity="0.7" />
-            <circle cx="178" cy="132" r="2.6" fill="#241b10" opacity="0.7" />
-            <circle cx="62" cy="288" r="2.6" fill="#241b10" opacity="0.7" />
-            <circle cx="178" cy="288" r="2.6" fill="#241b10" opacity="0.7" />
-            <circle cx="168" cy="185" r="9" fill="#1b140c" opacity="0.4" />
-            <circle cx="168" cy="185" r="7.5" fill="#a87f42" stroke="#4a3820" strokeWidth="1.5" />
-          </g>
+            <path
+              d={ARCH}
+              fill={buio ? "#07080c" : "url(#pwood)"}
+              stroke={buio ? "#07080c" : "#241b10"}
+              strokeWidth="3"
+            />
+            {!buio && (
+              <>
+                <path d="M97 74 L97 300" stroke="#241b10" strokeWidth="1.5" opacity="0.45" />
+                <path d="M143 74 L143 300" stroke="#241b10" strokeWidth="1.5" opacity="0.45" />
+                <circle cx="62" cy="132" r="2.6" fill="#241b10" opacity="0.7" />
+                <circle cx="178" cy="132" r="2.6" fill="#241b10" opacity="0.7" />
+                <circle cx="62" cy="288" r="2.6" fill="#241b10" opacity="0.7" />
+                <circle cx="178" cy="288" r="2.6" fill="#241b10" opacity="0.7" />
+                <circle cx="168" cy="185" r="9" fill="#1b140c" opacity="0.4" />
+                <circle cx="168" cy="185" r="7.5" fill="#a87f42" stroke="#4a3820" strokeWidth="1.5" />
+              </>
+            )}
           </g>
 
-          <path
-            d="M40 302 L40 130 Q40 58 120 58 Q200 58 200 130 L200 302"
-            fill="none"
-            stroke="#2b2418"
-            strokeWidth="9"
-            strokeLinecap="round"
-            opacity="0.9"
-          />
-          <path d="M32 302 L208 302" stroke="#2b2418" strokeWidth="9" strokeLinecap="round" opacity="0.9" />
+          {/* La soglia di pietra: al Perno è LEI ad arrivare qui girata
+              di tre quarti, attorno a una porta rimasta dritta. */}
+          {!buio && (
+            <g className="soglia" style={{ transform: `rotate(${inclinazione}deg)` }}>
+              <path
+                d="M40 302 L40 130 Q40 58 120 58 Q200 58 200 130 L200 302"
+                fill="none"
+                stroke="#2b2418"
+                strokeWidth="9"
+                strokeLinecap="round"
+                opacity="0.9"
+              />
+              <path d="M32 302 L208 302" stroke="#2b2418" strokeWidth="9" strokeLinecap="round" opacity="0.9" />
+            </g>
+          )}
         </g>
       </svg>
     </div>

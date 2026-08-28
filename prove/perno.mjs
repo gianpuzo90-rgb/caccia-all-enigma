@@ -1,12 +1,13 @@
 /**
  * Prova del Perno (livello VIII).
  *
- * Qui il pomello è saldato all'anta: non gira. Gira la porta intera,
- * e a giro finito si spalanca storta. Il livello sta in piedi su un
- * fatto geometrico — l'angolo si misura dal centro della PORTA — e
- * quel fatto non si vede leggendo il codice: si vede solo provando i
- * due gesti, quello sbagliato e quello giusto, e guardando dove si
- * finisce. È esattamente quello che fa questa prova.
+ * Qui non gira il pomello e non gira la porta: gira la SOGLIA di
+ * pietra, attorno a un'anta che resta ferma. Il livello sta in piedi
+ * su due fatti che leggendo il codice non si vedono — la pietra si
+ * prende solo sulla pietra, e non la si prende nel raggio di un palmo
+ * dal pomello, o sarebbe un pomello come tutti gli altri. Si vedono
+ * solo facendo i gesti veri e guardando dove si finisce. È
+ * esattamente quello che fa questa prova.
  *
  * Il server è finto: le API sono simulate qui dentro, così la prova
  * non tocca il database e si può lanciare sempre.
@@ -65,10 +66,11 @@ function verifica(cosa, reale, atteso) {
     const b = await page.locator('.doorKnob').boundingBox();
     return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
   };
-  /* Quanto è girata l'anta adesso, letta dal DOM: serve a distinguere
-     "non si è mosso niente" da "si è mosso ma non è bastato". */
-  const giroAnta = () =>
-    page.locator('.anta').evaluate((el) => {
+  /* Quanto è girata la soglia adesso, letta dal DOM: serve a
+     distinguere "non si è mosso niente" da "si è mosso ma non è
+     bastato". */
+  const giroSoglia = () =>
+    page.locator('.doorScene.perno .soglia').evaluate((el) => {
       const m = new DOMMatrix(getComputedStyle(el).transform);
       return Math.round((Math.atan2(m.b, m.a) * 180) / Math.PI);
     }).catch(() => 999);
@@ -78,15 +80,30 @@ function verifica(cosa, reale, atteso) {
 
   console.log("\n1. LA STANZA DEL PERNO");
   verifica("sono al", await dove(), "Livello 8 — Il Perno");
-  verifica("c'è l'anta girevole", await page.locator('.anta').count(), 1);
-  verifica("il pomello è a riposo", await giroAnta(), 0);
+  verifica("c'è la soglia girevole", await page.locator('.doorScene.perno .soglia').count(), 1);
+  verifica("la soglia è dritta", await giroSoglia(), 0);
+
+  /* Spazza in un arco largo attorno al centro del vano, partendo da un
+     punto qualunque: è il gesto giusto, e serve sia per farlo dove va
+     fatto sia per provarlo dove NON deve funzionare. */
+  const spazza = async (da, gradi) => {
+    const c = await centro();
+    const raggio = Math.hypot(da.x - c.cx, da.y - c.cy);
+    const inizio = (Math.atan2(da.y - c.cy, da.x - c.cx) * 180) / Math.PI;
+    await page.mouse.move(da.x, da.y);
+    await page.mouse.down();
+    for (let g = 0; g <= gradi; g += 5) {
+      const a = ((inizio + g) * Math.PI) / 180;
+      await page.mouse.move(c.cx + Math.cos(a) * raggio, c.cy + Math.sin(a) * raggio);
+    }
+    await page.mouse.up();
+    await page.waitForTimeout(1200);
+  };
 
   console.log("2. IL GESTO ABITUALE — mulinello stretto sul pomello");
   /* Quello che funziona in tutti gli altri livelli: si prende il
-     pomello e gli si gira attorno. Qui non deve portare da nessuna
-     parte, perché l'angolo si misura dal centro della porta. E non
-     deve portarci nemmeno insistendo: se ogni giro rubasse qualche
-     grado, prima o poi il gesto sbagliato vincerebbe lo stesso. */
+     pomello e gli si gira attorno. Qui il pomello è saldato e non
+     comanda niente. */
   const mulinello = async (giri) => {
     const p = await pomello();
     await page.mouse.move(p.x + 14, p.y);
@@ -100,27 +117,28 @@ function verifica(cosa, reale, atteso) {
   };
   await mulinello(3);
   verifica("NON si è passati di là", await dove(), "Livello 8 — Il Perno");
-  verifica("l'anta è tornata dritta", await giroAnta(), 0);
+  verifica("la soglia non si è mossa", await giroSoglia(), 0);
 
   console.log("3. E INSISTENDO? — il gesto sbagliato non deve arrivarci mai");
   for (let i = 0; i < 6; i++) await mulinello(4);
   verifica("dopo 27 giri di mulinello, ancora al", await dove(), "Livello 8 — Il Perno");
-  verifica("l'anta è ancora dritta", await giroAnta(), 0);
+  verifica("la soglia è ancora dritta", await giroSoglia(), 0);
 
-  console.log("4. IL GESTO GIUSTO — la porta spazzata in un arco largo");
+  console.log("4. L'ARCO LARGO MA PARTENDO DAL POMELLO — è la scorciatoia");
+  /* Il gesto giusto fatto partire dal punto sbagliato: se la pietra si
+     lasciasse prendere anche lì, basterebbe appoggiare il dito dove lo
+     si appoggia in tutti gli altri livelli e il resto verrebbe da sé.
+     Il livello diventerebbe un pomello con più strada da fare. */
+  await spazza(await pomello(), 285);
+  verifica("dal pomello NON si gira niente", await giroSoglia(), 0);
+  verifica("e non si passa", await dove(), "Livello 8 — Il Perno");
+
+  console.log("5. IL GESTO GIUSTO — la pietra presa per la pietra");
   {
-    const c = await centro();
-    const p = await pomello();
-    const raggio = Math.hypot(p.x - c.cx, p.y - c.cy);
-    const da = (Math.atan2(p.y - c.cy, p.x - c.cx) * 180) / Math.PI;
-    await page.mouse.move(p.x, p.y);
-    await page.mouse.down();
-    for (let g = 0; g <= 285; g += 5) {
-      const a = ((da + g) * Math.PI) / 180;
-      await page.mouse.move(c.cx + Math.cos(a) * raggio, c.cy + Math.sin(a) * raggio);
-    }
-    await page.mouse.up();
-    await page.waitForTimeout(3000);
+    /* Lo stipite di sinistra: pietra vera, e lontana dal pomello. */
+    const b = await page.locator('.doorScene.perno').boundingBox();
+    await spazza({ x: b.x + b.width * 0.167, y: b.y + b.height * 0.72 }, 285);
+    await page.waitForTimeout(2600);
   }
   verifica("si è passati al IX", await dove(), "Livello 9 — ?");
 

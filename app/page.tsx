@@ -479,12 +479,14 @@ export default function CacciaAllEnigma() {
 
   /* La didascalia sotto la carta: per l'onboarding la sappiamo qui, per
      gli enigmi la riporta EnigmaLevel. Nelle altre viste non c'è. */
+  const suEnigmi = view === "game" && level > 3;
   const didascalia =
-    view !== "game"
-      ? null
-      : level <= 3
-        ? didascaliaLivello(level, TITOLI_ONBOARDING[level - 1])
-        : didascaliaEnigma;
+    view !== "game" ? null : suEnigmi ? didascaliaEnigma : didascaliaLivello(level, TITOLI_ONBOARDING[level - 1]);
+  /* Il titolo si specchia SOLO mentre si è davvero dentro lo Specchio.
+     livelloEnigma resta all'ultimo enigma visto anche dopo essere
+     tornati all'onboarding: da solo faceva scrivere al contrario pure
+     i titoli dei livelli 1-3. */
+  const riflessa = suEnigmi && livelloEnigma === LIVELLO_SPECCHIO;
 
   if (!pronto) return <div className="night" />;
 
@@ -580,7 +582,7 @@ export default function CacciaAllEnigma() {
           {nota && <p className="nota">{nota}</p>}
         </div>
         {didascalia && (
-          <p className={"didascalia" + (livelloEnigma === LIVELLO_SPECCHIO ? " riflessa" : "")}>
+          <p className={"didascalia" + (riflessa ? " riflessa" : "")}>
             {didascalia}
           </p>
         )}
@@ -609,6 +611,7 @@ export default function CacciaAllEnigma() {
           leafOpen={portal.leafOpen}
           zoom={portal.zoom}
           inclinazione={portal.inclinazione}
+          buio={portal.buio}
         />
       )}
       {sipario !== "aperto" && (

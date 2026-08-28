@@ -2,6 +2,7 @@
 
 import { type RefObject } from "react";
 import { Door } from "./Door";
+import { Tappo } from "./Tappo";
 
 type StanzaScaricoProps = {
   sceneRef: RefObject<HTMLDivElement | null>;
@@ -45,38 +46,17 @@ export function StanzaScarico({
         <div className="acquaCorpo" />
       </div>
 
-      {tappoInserito ? (
-        <button
-          type="button"
-          className="catenella"
-          onClick={onTiraTappo}
-          aria-label={
-            allagata
+      <Tappo
+        inserito={tappoInserito}
+        onClick={tappoInserito ? onTiraTappo : onRimettiTappo}
+        etichetta={
+          !tappoInserito
+            ? "Rimetti il tappo nello scarico"
+            : allagata
               ? "Tira la catenella: sfila il tappo e fai defluire l'acqua"
               : "Tira la catenella: sfila il tappo dallo scarico"
-          }
-        >
-          <svg viewBox="0 0 40 52" width="26" height="34">
-            <line
-              x1="20" y1="0" x2="20" y2="38"
-              stroke="#8b96a3" strokeWidth="2.4" strokeDasharray="1 6" strokeLinecap="round"
-            />
-            <rect x="7" y="38" width="26" height="6" rx="3" fill="#241b10" />
-          </svg>
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="catenella"
-          onClick={onRimettiTappo}
-          aria-label="Rimetti il tappo nello scarico"
-        >
-          <svg viewBox="0 0 40 52" width="26" height="34">
-            <circle cx="20" cy="14" r="5" fill="none" stroke="#8b96a3" strokeWidth="2.4" />
-            <path d="M8 30 h24 l-4 16 h-16 Z" fill="#241b10" />
-          </svg>
-        </button>
-      )}
+        }
+      />
     </div>
   );
 }

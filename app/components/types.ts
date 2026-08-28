@@ -21,9 +21,12 @@ export type PortalRect = {
   lit: boolean;
   leafOpen: boolean;
   zoom: boolean;
-  /** Gradi di cui l'anta è girata quando si spalanca. Zero ovunque
-      tranne che al Perno, dove la porta si apre storta. */
+  /** Gradi di cui la soglia di pietra è girata. Zero ovunque tranne
+      che al Perno, dove il vano resta storto attorno a una porta
+      dritta. */
   inclinazione: number;
+  /** Al Buio non c'è legno da guardare: si apre solo la luce. */
+  buio: boolean;
 };
 
 export type EnigmaDTO = {

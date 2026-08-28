@@ -17,7 +17,7 @@ export function usePortale() {
     scambiaContenuto: () => void,
     lit = true,
     onOscura?: () => void,
-    inclinazione = 0
+    extra: { inclinazione?: number; buio?: boolean } = {}
   ) => {
     const el = sceneRef.current;
     if (!el) {
@@ -34,7 +34,8 @@ export function usePortale() {
       lit,
       leafOpen: false,
       zoom: false,
-      inclinazione,
+      inclinazione: extra.inclinazione ?? 0,
+      buio: !!extra.buio,
     });
     scambiaContenuto();
     /* Il buio cala subito, sotto il portale: così la porta si apre su
