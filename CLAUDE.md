@@ -152,7 +152,10 @@ del web diventa gioco. Restano client-side perché non contengono segreti.
   - **La pietra si prende solo sulla pietra.** La presa è il tratto
     stesso della soglia, ingrassato fino allo spessore di un dito
     (`.sogliaPresa`, `pointer-events: stroke`). Dentro l'arco non si
-    prende niente.
+    prende niente. Attenzione: il `touch-action: none` che serve al
+    trascinamento va su `.doorScene.perno`, che è HTML — **dentro
+    l'SVG Chrome non lo guarda**, e il gesto muore in `pointercancel`
+    dopo due mosse mentre col mouse continua a funzionare benissimo.
   - **E non la si prende vicino al pomello** (62px). Senza quel raggio
     proibito bastava appoggiare il dito dove lo si appoggia in tutti
     gli altri livelli e spazzare: il livello tornava a essere un
@@ -293,8 +296,13 @@ gli altri livelli) → non si passa → 27 giri di mulinello di fila →
 ancora non si passa, che è la verifica contro il cricchetto: un gesto
 sbagliato che ruba gradi vincerebbe comunque, prima o poi → **arco
 largo ma partendo dal pomello** → non gira niente, ed è la verifica del
-raggio proibito → arco largo preso sullo stipite → si passa. **Da
-rilanciare ogni volta che si tocca `Door.tsx`.**
+raggio proibito → arco largo preso sullo stipite → si passa → e
+tutto questo **anche col dito**, non solo col mouse. L'ultimo passo
+non è pignoleria: la prima versione della prova usava solo il mouse,
+dava tutto verde, e sul telefono il livello era insuperabile. Un
+livello che si gioca trascinando va provato trascinando come lo si
+trascina davvero. **Da rilanciare ogni volta che si tocca
+`Door.tsx`.**
 
 Con la sessione di un utente fermo al livello 5:
 

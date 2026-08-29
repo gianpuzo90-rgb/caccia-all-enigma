@@ -9,6 +9,13 @@
  * solo facendo i gesti veri e guardando dove si finisce. È
  * esattamente quello che fa questa prova.
  *
+ * E li fa COL DITO, non solo col mouse. La prima versione provava
+ * solo col mouse e dava tutto verde mentre sul telefono il livello
+ * era insuperabile: il browser si prendeva il gesto per scrollare la
+ * pagina e lo chiudeva in pointercancel dopo due mosse. Un livello
+ * che si gioca trascinando va provato trascinando come lo si
+ * trascina davvero.
+ *
  * Il server è finto: le API sono simulate qui dentro, così la prova
  * non tocca il database e si può lanciare sempre.
  *
@@ -38,8 +45,11 @@ function verifica(cosa, reale, atteso) {
 
 (async () => {
   const browser = await chromium.launch({ ...(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {}) });
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 800 }, locale: 'it-IT' });
+  const ctx = await browser.newContext({
+    viewport: { width: 390, height: 800 }, locale: 'it-IT', hasTouch: true, isMobile: true,
+  });
   const page = await ctx.newPage();
+  const cdp = await ctx.newCDPSession(page);
   await page.addInitScript(() => {
     localStorage.setItem('cae:progresso', JSON.stringify({ level: 8 }));
     localStorage.setItem('cae:consenso', JSON.stringify({ necessari: true, statistiche: false, ts: Date.now(), versione: 1 }));
@@ -85,19 +95,40 @@ function verifica(cosa, reale, atteso) {
 
   /* Spazza in un arco largo attorno al centro del vano, partendo da un
      punto qualunque: è il gesto giusto, e serve sia per farlo dove va
-     fatto sia per provarlo dove NON deve funzionare. */
-  const spazza = async (da, gradi) => {
+     fatto sia per provarlo dove NON deve funzionare. Col dito o col
+     mouse: sono due strade diverse dentro al browser, e una delle due
+     si è già rotta da sola una volta. */
+  const giu = async (p, dito) => dito
+    ? cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: p.x, y: p.y }] })
+    : (await page.mouse.move(p.x, p.y), page.mouse.down());
+  const muovi = async (p, dito) => dito
+    ? cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: p.x, y: p.y }] })
+    : page.mouse.move(p.x, p.y);
+  const su = async (dito) => dito
+    ? cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    : page.mouse.up();
+
+  const spazza = async (da, gradi, dito = false) => {
     const c = await centro();
     const raggio = Math.hypot(da.x - c.cx, da.y - c.cy);
     const inizio = (Math.atan2(da.y - c.cy, da.x - c.cx) * 180) / Math.PI;
-    await page.mouse.move(da.x, da.y);
-    await page.mouse.down();
+    await giu(da, dito);
     for (let g = 0; g <= gradi; g += 5) {
       const a = ((inizio + g) * Math.PI) / 180;
-      await page.mouse.move(c.cx + Math.cos(a) * raggio, c.cy + Math.sin(a) * raggio);
+      await muovi({ x: c.cx + Math.cos(a) * raggio, y: c.cy + Math.sin(a) * raggio }, dito);
     }
-    await page.mouse.up();
+    await su(dito);
     await page.waitForTimeout(1200);
+  };
+
+  /* Lo stipite di sinistra: pietra vera, e lontana dal pomello. */
+  const pietra = async () => {
+    const b = await page.locator('.doorScene.perno').boundingBox();
+    return { x: b.x + b.width * 0.167, y: b.y + b.height * 0.72 };
+  };
+  const vaiAllOtto = async () => {
+    await page.locator('button.step', { hasText: /^8$/ }).first().click();
+    await page.waitForTimeout(1800);
   };
 
   console.log("2. IL GESTO ABITUALE — mulinello stretto sul pomello");
@@ -133,14 +164,20 @@ function verifica(cosa, reale, atteso) {
   verifica("dal pomello NON si gira niente", await giroSoglia(), 0);
   verifica("e non si passa", await dove(), "Livello 8 — Il Perno");
 
-  console.log("5. IL GESTO GIUSTO — la pietra presa per la pietra");
-  {
-    /* Lo stipite di sinistra: pietra vera, e lontana dal pomello. */
-    const b = await page.locator('.doorScene.perno').boundingBox();
-    await spazza({ x: b.x + b.width * 0.167, y: b.y + b.height * 0.72 }, 285);
-    await page.waitForTimeout(2600);
-  }
+  console.log("5. IL GESTO GIUSTO COL MOUSE — la pietra presa per la pietra");
+  await spazza(await pietra(), 285);
+  await page.waitForTimeout(2600);
   verifica("si è passati al IX", await dove(), "Livello 9 — ?");
+
+  console.log("6. E ORA COL DITO — la strada che il mouse non prova");
+  /* Qui si era rotto tutto senza che si vedesse: touch-action stava su
+     un elemento SVG, dove Chrome non lo guarda, e il browser chiudeva
+     il trascinamento in pointercancel per scrollare la pagina. */
+  await vaiAllOtto();
+  verifica("tornato all'VIII", await dove(), "Livello 8 — Il Perno");
+  await spazza(await pietra(), 285, true);
+  await page.waitForTimeout(2600);
+  verifica("col dito si passa al IX", await dove(), "Livello 9 — ?");
 
   console.log(`\n=== ${passati} verifiche passate, ${falliti} fallite ===`);
   await browser.close();

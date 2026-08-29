@@ -234,13 +234,20 @@
    che girando esce dal suo riquadro. Senza overflow visibile la si
    vedrebbe tranciata. */
 .doorScene.perno, .doorScene.perno .doorSvg { overflow: visible; }
+/* Il dito che spazza la soglia dev'essere nostro, non del browser che
+   ci scrolla la pagina. E questa riga deve stare QUI, su un elemento
+   HTML: dentro l'SVG (sulla presa, dove verrebbe naturale metterla)
+   Chrome non guarda touch-action, e il gesto moriva in pointercancel
+   dopo due mosse. Col mouse funzionava benissimo — è il motivo per
+   cui la prova, che usava il mouse, non se n'era accorta. */
+.doorScene.perno { touch-action: none; }
 .soglia { transform-box: fill-box; transform-origin: 50% 50%; }
 /* La presa è la pietra stessa, ingrassata fino allo spessore di un
    dito e invisibile. Solo il tratto: dentro l'arco non si prende
    niente, o si finirebbe per girare la soglia dal centro della porta. */
 .sogliaPresa {
   fill: none; stroke: transparent; stroke-width: 34; stroke-linecap: round;
-  pointer-events: stroke; touch-action: none; cursor: grab;
+  pointer-events: stroke; cursor: grab;
 }
 .sogliaPresa:active { cursor: grabbing; }
 .sogliaPresa:focus-visible { stroke: var(--lanterna); stroke-width: 4; stroke-opacity: .8; outline: none; }
